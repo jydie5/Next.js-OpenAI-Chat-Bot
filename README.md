@@ -1,5 +1,9 @@
 # Next.js OpenAI Chat Bot
+<<<<<<< HEAD
  
+=======
+
+>>>>>>> 41b789a21bfca034e7cea3d7f51d09e2e422aa8d
 Next.jsとOpenAI APIを使用したシンプルなチャットボットアプリケーションです。
 
 ## 機能
@@ -36,4 +40,8 @@ Next.jsとOpenAI APIを使用したシンプルなチャットボットアプリ
    npm run dev
    ```
 
+<<<<<<< HEAD
 5. ブラウザで http://localhost:3000 を開きます。
+=======
+5. ブラウザで http://localhost:3000 を開きます。
+>>>>>>> 41b789a21bfca034e7cea3d7f51d09e2e422aa8d
