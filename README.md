@@ -1,5 +1,5 @@
 # Next.js OpenAI Chat Bot
-
+ 
 Next.jsとOpenAI APIを使用したシンプルなチャットボットアプリケーションです。
 
 ## 機能
