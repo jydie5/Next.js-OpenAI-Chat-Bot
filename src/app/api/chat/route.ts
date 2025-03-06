@@ -6,6 +6,7 @@ import OpenAI from 'openai';
 function streamToReadableStream(stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>) {
   const encoder = new TextEncoder();
   let controller: ReadableStreamDefaultController<Uint8Array>;
+  let responseDebugInfo: any = null;
   
   const readable = new ReadableStream({
     start(c) {
@@ -14,11 +15,49 @@ function streamToReadableStream(stream: AsyncIterable<OpenAI.Chat.Completions.Ch
       async function push() {
         try {
           for await (const chunk of stream) {
+            // デバッグ情報を保存
+            // 最後のチャンクの場合のみデバッグ情報を保存
+            if (chunk.choices[0]?.finish_reason === "stop") {
+              responseDebugInfo = {
+                id: chunk.id,
+                model: chunk.model,
+                usage: chunk.usage || {
+                  completion_tokens: 0,
+                  prompt_tokens: 0,
+                  total_tokens: 0,
+                  completion_tokens_details: {
+                    accepted_prediction_tokens: 0,
+                    audio_tokens: 0,
+                    reasoning_tokens: 0,
+                    rejected_prediction_tokens: 0
+                  },
+                  prompt_tokens_details: {
+                    audio_tokens: 0,
+                    cached_tokens: 0
+                  }
+                },
+                service_tier: chunk.service_tier,
+                system_fingerprint: chunk.system_fingerprint,
+              };
+            }
+
             const text = chunk.choices[0]?.delta?.content || '';
             if (text) {
-              controller.enqueue(encoder.encode(text));
+              // JSON形式でチャンクを送信
+              const jsonChunk = {
+                content: text,
+                isLast: false,
+              };
+              controller.enqueue(encoder.encode(JSON.stringify(jsonChunk) + '\n'));
             }
           }
+          // 最後のチャンクでデバッグ情報を送信
+          const finalChunk = {
+            content: '',
+            isLast: true,
+            debugInfo: responseDebugInfo,
+          };
+          controller.enqueue(encoder.encode(JSON.stringify(finalChunk) + '\n'));
           controller.close();
         } catch (error) {
           controller.error(error);

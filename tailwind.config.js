@@ -15,5 +15,21 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          500: '#10a37f',
+          600: '#0e906f',
+        },
+      },
+      /* スクロールバーのスタイリング */
+      fontSize: {
+        'code': '0.9375rem', // 15px
+      },
+    },
+  },
 };
