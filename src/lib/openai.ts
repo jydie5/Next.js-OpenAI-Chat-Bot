@@ -18,10 +18,16 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
     }));
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      // model: 'gpt-4o',
+      model: 'o3-mini',
+
+      // reasoning_effort:"medium",
+      reasoning_effort:"high",
+      //reasoning_effort=:low",
+
       messages: formattedMessages,
-      temperature: 0.7,
-      max_tokens: 1000,
+      // temperature: 0.7,
+      max_completion_tokens : 25000,
     });
 
     return response.choices[0]?.message?.content || '回答を生成できませんでした。';

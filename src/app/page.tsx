@@ -90,7 +90,7 @@ export default function Home() {
         <div className="mb-6">
           <h2 className="text-xl font-bold mb-4">OpenAI チャットボット</h2>
           <p className="text-gray-600">
-            GPT-4oを使ったチャットボットです。質問や会話を楽しんでください。
+            GPTモデル　o3-miniを使ったチャットボットです。質問や会話を楽しんでください。
           </p>
         </div>
 
