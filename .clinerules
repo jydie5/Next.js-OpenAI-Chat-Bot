@@ -1,0 +1,52 @@
+### file tree
+.
+├── .clinerules
+├── .env.local.example
+├── .gitignore
+├── next.config.js
+├── package.json
+├── package-lock.json
+├── postcss.config.js
+├── tailwind.config.js
+├── tsconfig.json
+├── README.md
+├── app/
+│   ├── globals.css
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── api/
+│   │   └── chat/
+│   │       ├── route.ts
+│   │       └── normal/
+│   │           └── route.ts
+│   ├── components/
+│   │   ├── ChatInput.tsx
+│   │   └── ChatMessage.tsx
+│   └── lib/
+│       └── openai.ts
+├── cypress/
+│   ├── downloads/
+│   │   └── downloads.htm
+│   ├── e2e/
+│   │   └── chat.cy.js
+│   └── support/
+│       ├── commands.js
+│       └── e2e.js
+└── public/
+
+### file tree end
+
+このプロジェクトはNext.js、OpenAI API、Tailwind CSSを使用したチャットボットアプリケーションです。
+
+主な構造:
+1. フロントエンド
+   - app/page.tsx: メインページ
+   - app/components/: ChatInputとChatMessageコンポーネント
+   - Tailwind CSSによるスタイリング
+
+2. バックエンド
+   - app/api/chat/: チャットAPIエンドポイント
+   - app/lib/openai.ts: OpenAI APIクライアント
+
+3. テスト
+   - Cypressを使用したE2Eテスト
