@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import SessionProvider from './components/SessionProvider';
+import { SessionProvider as ChatSessionProvider } from './components/SessionContext';
 import NavigationBar from './components/NavigationBar';
 import Sidebar from './components/Sidebar';
 import './globals.css';
@@ -22,24 +23,26 @@ export default async function RootLayout({
     <html lang="ja">
       <body>
         <SessionProvider session={session}>
-          <div className="flex flex-col min-h-screen">
-            <header className="bg-primary-500 text-white py-4">
-              <div className="container mx-auto px-4">
-                <NavigationBar />
+          <ChatSessionProvider>
+            <div className="flex flex-col min-h-screen">
+              <header className="bg-primary-500 text-white py-4">
+                <div className="container mx-auto px-4">
+                  <NavigationBar />
+                </div>
+              </header>
+              <div className="flex flex-1">
+                {session?.user && <Sidebar />}
+                <main className="flex-1 px-4 py-8">
+                  {children}
+                </main>
               </div>
-            </header>
-            <div className="flex flex-1">
-              {session?.user && <Sidebar />}
-              <main className="flex-1 px-4 py-8">
-                {children}
-              </main>
+              <footer className="bg-gray-100 py-4">
+                <div className="container mx-auto px-4 text-center text-gray-600">
+                  <p>&copy; {new Date().getFullYear()} OpenAI Chat Bot Demo</p>
+                </div>
+              </footer>
             </div>
-            <footer className="bg-gray-100 py-4">
-              <div className="container mx-auto px-4 text-center text-gray-600">
-                <p>&copy; {new Date().getFullYear()} OpenAI Chat Bot Demo</p>
-              </div>
-            </footer>
-          </div>
+          </ChatSessionProvider>
         </SessionProvider>
       </body>
     </html>

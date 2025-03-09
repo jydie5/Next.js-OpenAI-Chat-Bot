@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { PrismaClient } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import ChatRoom from './ChatRoom';
+import SessionUpdater from '../../components/SessionUpdater';
 
 const prisma = new PrismaClient();
 
@@ -14,7 +15,6 @@ interface PageProps {
 
 export default async function ChatPage({ params }: PageProps) {
   const session = await getServerSession(authOptions);
-
   if (!session) {
     redirect('/login');
   }
@@ -42,5 +42,10 @@ export default async function ChatPage({ params }: PageProps) {
     redirect('/');
   }
 
-  return <ChatRoom initialMessages={chatSession.messages} sessionId={chatSession.id} />;
+  return (
+    <>
+      <SessionUpdater />
+      <ChatRoom initialMessages={chatSession.messages} sessionId={chatSession.id} />
+    </>
+  );
 }

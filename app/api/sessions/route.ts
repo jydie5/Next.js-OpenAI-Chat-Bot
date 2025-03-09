@@ -43,3 +43,44 @@ export async function GET() {
     );
   }
 }
+
+// 新規セッション作成のPOSTエンドポイント
+export async function POST() {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user) {
+      return new NextResponse(
+        JSON.stringify({ error: '認証が必要です' }),
+        { status: 401 }
+      );
+    }
+    
+    const userId = parseInt(session.user.id);
+    
+    // 新規セッションを作成
+    const newSession = await prisma.session.create({
+      data: {
+        userId: userId,
+        title: '新規チャット', // 最初のメッセージで後で更新
+        messages: {
+          create: [] // 初期メッセージなし
+        }
+      }
+    });
+    
+    return new NextResponse(
+      JSON.stringify({ 
+        success: true, 
+        session: newSession 
+      }),
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('セッション作成エラー:', error);
+    return new NextResponse(
+      JSON.stringify({ error: 'セッションの作成に失敗しました' }),
+      { status: 500 }
+    );
+  }
+}

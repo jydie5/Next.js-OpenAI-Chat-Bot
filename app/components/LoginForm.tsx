@@ -26,8 +26,12 @@ export default function LoginForm() {
       if (result?.error) {
         setError('ユーザー名またはパスワードが正しくありません');
       } else {
-        router.push('/');
-        router.refresh();
+        // ログイン成功後、少し遅延を入れてからリダイレクトする
+        // これにより認証状態の変更が適切に反映される時間を確保
+        setTimeout(() => {
+          router.push('/');
+          router.refresh();
+        }, 300);
       }
     } catch (error) {
       setError('ログイン中にエラーが発生しました');

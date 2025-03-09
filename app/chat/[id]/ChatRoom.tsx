@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Message from '../../components/Message';
 import ChatInput from '../../components/ChatInput';
+import { useSessionContext } from '../../components/SessionContext';
 import type { Message as MessageType } from '@prisma/client';
 
 interface ChatRoomProps {
@@ -13,6 +14,13 @@ interface ChatRoomProps {
 export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) {
   const [messages, setMessages] = useState<MessageType[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
+  const { refreshSessions } = useSessionContext();
+
+  // コンポーネントのマウント時に一度リフレッシュを実行
+  useEffect(() => {
+    // 新規チャット作成直後やページロード時にサイドバーを更新
+    refreshSessions();
+  }, [refreshSessions]);
 
   const handleSubmit = async (content: string) => {
     setIsLoading(true);
@@ -31,6 +39,9 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
 
       const data = await response.json();
       setMessages((prev) => [...prev, data.userMessage, data.assistantMessage]);
+      
+      // メッセージ送信後にセッションリストを更新
+      refreshSessions();
     } catch (error) {
       console.error('エラー:', error);
       alert('メッセージの送信に失敗しました');
