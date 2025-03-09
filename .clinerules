@@ -1,29 +1,52 @@
 ### file tree
 .
 ├── .clinerules
+├── .clinetules.sample
+├── .env
 ├── .env.local.example
 ├── .gitignore
+├── cypress.config.js
+├── middleware.ts
 ├── next.config.js
 ├── package.json
 ├── package-lock.json
 ├── postcss.config.js
+├── README.md
+├── requirements.md
 ├── tailwind.config.js
 ├── tsconfig.json
-├── README.md
 ├── app/
 │   ├── globals.css
 │   ├── layout.tsx
 │   ├── page.tsx
 │   ├── api/
+│   │   ├── auth/
+│   │   │   └── [...nextauth]/
+│   │   │       └── route.ts
 │   │   └── chat/
 │   │       ├── route.ts
+│   │       ├── [id]/
+│   │       │   └── route.ts
 │   │       └── normal/
 │   │           └── route.ts
+│   ├── chat/
+│   │   └── [id]/
+│   │       ├── ChatRoom.tsx
+│   │       └── page.tsx
 │   ├── components/
 │   │   ├── ChatInput.tsx
-│   │   └── ChatMessage.tsx
-│   └── lib/
-│       └── openai.ts
+│   │   ├── ChatMessage.tsx
+│   │   ├── LoginForm.tsx
+│   │   ├── Message.tsx
+│   │   ├── NavigationBar.tsx
+│   │   ├── SessionProvider.tsx
+│   │   └── Sidebar.tsx
+│   ├── lib/
+│   │   └── openai.ts
+│   ├── login/
+│   │   └── page.tsx
+│   └── new/
+│       └── page.tsx
 ├── cypress/
 │   ├── downloads/
 │   │   └── downloads.htm
@@ -32,21 +55,44 @@
 │   └── support/
 │       ├── commands.js
 │       └── e2e.js
-└── public/
+├── prisma/
+│   ├── schema.prisma
+│   ├── seed.ts
+│   └── migrations/
+│       ├── migration_lock.toml
+│       └── 20250309021457_init/
+│           └── migration.sql
+├── public/
+└── types/
+    └── next-auth.d.ts
 
 ### file tree end
 
-このプロジェクトはNext.js、OpenAI API、Tailwind CSSを使用したチャットボットアプリケーションです。
+このプロジェクトはNext.js、OpenAI API、Tailwind CSS、Prisma、NextAuth.jsを使用したチャットボットアプリケーションです。
 
 主な構造:
 1. フロントエンド
    - app/page.tsx: メインページ
-   - app/components/: ChatInputとChatMessageコンポーネント
+   - app/components/: 各種コンポーネント（チャット、認証、ナビゲーション等）
+   - app/chat/[id]/: チャットルーム
    - Tailwind CSSによるスタイリング
 
 2. バックエンド
    - app/api/chat/: チャットAPIエンドポイント
+   - app/api/auth/: 認証APIエンドポイント
    - app/lib/openai.ts: OpenAI APIクライアント
+   - Prisma: データベース操作
 
-3. テスト
+3. 認証
+   - NextAuth.jsによるユーザー認証
+   - ミドルウェアによる保護されたルート
+
+4. データベース
+   - Prisma ORM
+   - SQLiteデータベース
+   - マイグレーション管理
+
+5. テスト
    - Cypressを使用したE2Eテスト
+
+### 要件定義はrequiremnts.mdを参照してください。実装が終わった物にはチェックボックスをつけて継続作業者が分かりやすいようにその都度更新してください。
