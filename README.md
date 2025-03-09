@@ -87,30 +87,31 @@ cd Next.js-OpenAI-Chat-Bot
 npm install
 ```
 
-3. Set up the database:
+3. Configure environment variables:
+   Create a new `.env` file in the project root with the following content:
+
 ```bash
-# Generate Prisma client
-npx prisma generate
+# Database configuration
+DATABASE_URL="file:./prisma/dev.db"
 
-# Create and initialize the database (if not exists)
-npx prisma migrate dev --name init
+# Authentication configuration (required for NextAuth.js)
+NEXTAUTH_SECRET="temporary_secure_secret_key_please_change_in_production"
+NEXTAUTH_URL="http://localhost:3000"
 
-# Seed the database with initial data
-npx prisma db seed
+# OpenAI API configuration
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-4. Configure environment variables:
-   - Copy `.env.sample` to `.env`
-   - Configure the required settings in your `.env` file:
-
+Note: In production, make sure to replace the NEXTAUTH_SECRET with a secure random value:
 ```bash
-# Generate a secure secret for NextAuth.js
+# Generate a secure secret for production
 openssl rand -base64 32
-# Or using Node.js:
-# node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
 
-# Add the generated secret to your .env file
-NEXTAUTH_SECRET="your-generated-secret-key"
+4. Set up the database:
+```bash
+# Reset database, apply migrations, and seed initial data
+npx prisma migrate reset --force
 ```
 
 5. Start the development server:
@@ -278,30 +279,31 @@ cd Next.js-OpenAI-Chat-Bot
 npm install
 ```
 
-3. データベースのセットアップ:
+3. 環境変数の設定:
+   プロジェクトのルートディレクトリに新しい`.env`ファイルを作成し、以下の内容を設定します:
+
 ```bash
-# Prismaクライアントを生成
-npx prisma generate
+# データベース設定
+DATABASE_URL="file:./prisma/dev.db"
 
-# データベースの作成と初期化（存在しない場合）
-npx prisma migrate dev --name init
+# 認証設定（NextAuth.js必須）
+NEXTAUTH_SECRET="temporary_secure_secret_key_please_change_in_production"
+NEXTAUTH_URL="http://localhost:3000"
 
-# データベースの初期データ投入
-npx prisma db seed
+# OpenAI API設定
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-4. 環境変数の設定:
-   - `.env.sample`を`.env`にコピー
-   - `.env`ファイルに必要な設定を行います:
-
+注意: 本番環境では、NEXTAUTH_SECRETを安全な乱数値に置き換えてください:
 ```bash
-# NextAuth.js用の安全なシークレットを生成
+# 本番環境用の安全なシークレットを生成
 openssl rand -base64 32
-# または Node.js を使用:
-# node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
 
-# 生成したシークレットを.envファイルに追加
-NEXTAUTH_SECRET="生成されたシークレットキー"
+4. データベースのセットアップ:
+```bash
+# データベースのリセット、マイグレーション適用、初期データ投入を実行
+npx prisma migrate reset --force
 ```
 
 5. 開発サーバーの起動:
