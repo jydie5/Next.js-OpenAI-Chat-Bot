@@ -20,13 +20,16 @@ export default function LoginForm() {
         username,
         password,
       });
+      
       if (result?.error) {
         setError('ユーザー名またはパスワードが正しくありません');
       } else {
+        // ログイン成功後に新しいセッション情報を取得するため、
+        // ページをリロードしてからリダイレクト
+        router.refresh();
         setTimeout(() => {
           router.push('/');
-          router.refresh();
-        }, 300);
+        }, 100);
       }
     } catch (error) {
       setError('ログイン中にエラーが発生しました');

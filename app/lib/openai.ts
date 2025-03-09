@@ -131,7 +131,9 @@ export async function generateStreamingChatResponse(messages: Message[]) {
         { role: 'system', content: 'Formatting re-enabled\nあなたは丁寧で優しい口調の日本語で回答するAIアシスタントです。' },
         ...formattedMessages
       ],
-      reasoning_effort: "high",
+      reasoning_effort: "low",
+      // reasoning_effort: "medium",
+      // reasoning_effort: "high",
       max_completion_tokens: 25000,
       stream: true,
     });

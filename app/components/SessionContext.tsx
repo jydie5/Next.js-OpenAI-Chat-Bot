@@ -1,5 +1,5 @@
 'use client';
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Session } from '@prisma/client';
 
@@ -20,71 +20,71 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [sessions, setSessions] = useState<SessionWithMessageCount[]>([]);
   const [loading, setLoading] = useState(true);
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isRefreshingRef = useRef<boolean>(false);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+  const isRefreshingRef = useRef(false);
   const { status: authStatus } = useSession();
 
-  const fetchSessions = async () => {
-    // すでに更新中なら処理をスキップ
-    if (isRefreshingRef.current) {
-      return;
-    }
+  const fetchSessions = useCallback(async (force = false) => {
+    // 強制更新でない場合、現在実行中のリフレッシュがあればスキップ
+    if (!isMountedRef.current || (!force && isRefreshingRef.current)) return;
 
     try {
       isRefreshingRef.current = true;
+      // 実行中のデバウンスタイマーをキャンセル
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+
+      // 即時にローディング状態を設定
       setLoading(true);
+
       const response = await fetch('/api/sessions');
       if (!response.ok) {
         throw new Error('セッションの取得に失敗しました');
       }
+
+      if (!isMountedRef.current) return;
+
       const data = await response.json();
       setSessions(data.sessions);
     } catch (error) {
-      console.error('エラー:', error);
+      console.error('セッション取得エラー:', error);
     } finally {
-      setLoading(false);
-      
-      // リフレッシュ完了後、一定時間経過してからフラグをリセット
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-      
-      refreshTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        setLoading(false);
         isRefreshingRef.current = false;
-      }, 500); // 500ミリ秒のクールダウン
-    }
-  };
-
-  // 初期ロードとクリーンアップ
-  useEffect(() => {
-    fetchSessions();
-    
-    return () => {
-      // クリーンアップ関数
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
       }
-    };
+    }
   }, []);
 
-  // 認証状態が変化したときにセッションリストを更新
   useEffect(() => {
+    isMountedRef.current = true;
+
     if (authStatus === 'authenticated') {
-      fetchSessions();
+      // 認証状態になったら即時にセッションを取得
+      fetchSessions(true);
     } else if (authStatus === 'unauthenticated') {
-      // 未認証状態ではセッションリストをクリア
       setSessions([]);
+      setLoading(false);
     }
-  }, [authStatus]);
+
+    return () => {
+      isMountedRef.current = false;
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [authStatus, fetchSessions]);
+
+  const value = React.useMemo(() => ({
+    sessions,
+    loading,
+    refreshSessions: fetchSessions,
+  }), [sessions, loading, fetchSessions]);
 
   return (
-    <SessionContext.Provider
-      value={{
-        sessions,
-        loading,
-        refreshSessions: fetchSessions
-      }}
-    >
+    <SessionContext.Provider value={value}>
       {children}
     </SessionContext.Provider>
   );
