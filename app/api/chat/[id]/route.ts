@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { PrismaClient } from '@prisma/client';
-import { OpenAI } from 'openai';
+import { generateStreamingChatResponse } from '@/lib/openai';
+import { StreamingTextResponse } from 'ai';
 
 const prisma = new PrismaClient();
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function POST(
   req: NextRequest,
@@ -25,6 +23,11 @@ export async function POST(
       },
       include: {
         user: true,
+        messages: {
+          orderBy: {
+            createdAt: 'asc'
+          }
+        }
       },
     });
 
@@ -53,20 +56,29 @@ export async function POST(
       },
     });
 
-    // OpenAI APIにリクエスト
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: message }],
-    });
+    // 過去のメッセージも含めてコンテキストを構築
+    const messages = chatSession.messages.map(msg => ({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+    }));
+    messages.push({ role: 'user', content: message });
 
-    const assistantMessage = completion.choices[0]?.message?.content || 'エラーが発生しました';
+    // ストリーミングレスポンスを生成
+    const stream = await generateStreamingChatResponse(messages);
 
-    // アシスタントの応答を保存
-    const savedAssistantMessage = await prisma.message.create({
-      data: {
-        sessionId: parseInt(params.id),
-        role: 'assistant',
-        content: assistantMessage,
+    // OpenAIのストリームを適切な形式のReadableStreamに変換
+    const textStream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        try {
+          for await (const chunk of stream) {
+            const text = chunk.choices[0]?.delta?.content || '';
+            controller.enqueue(encoder.encode(text));
+          }
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
       },
     });
 
@@ -74,14 +86,12 @@ export async function POST(
     if (chatSession.title === '新規チャット') {
       await prisma.session.update({
         where: { id: parseInt(params.id) },
-        data: { title: message.slice(0, 50) }, // 最初の50文字を使用
+        data: { title: message.slice(0, 50) },
       });
     }
 
-    return NextResponse.json({
-      userMessage,
-      assistantMessage: savedAssistantMessage,
-    });
+    // 正しく変換されたストリームを返す
+    return new StreamingTextResponse(textStream);
   } catch (error) {
     console.error('Error in chat API:', error);
     return NextResponse.json(

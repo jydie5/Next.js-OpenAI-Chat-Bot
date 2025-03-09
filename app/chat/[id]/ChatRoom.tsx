@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Message from '../../components/Message';
 import ChatInput from '../../components/ChatInput';
 import { useSessionContext } from '../../components/SessionContext';
@@ -14,32 +14,128 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
   const [messages, setMessages] = useState<MessageType[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
   const { refreshSessions } = useSessionContext();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   useEffect(() => {
     refreshSessions();
   }, [refreshSessions]);
 
+  useEffect(() => {
+    return () => {
+      // コンポーネントのアンマウント時にストリーミングをキャンセル
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   const handleSubmit = async (content: string) => {
     setIsLoading(true);
+
+    // 以前のストリーミングをキャンセル
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
+      // ユーザーメッセージを即座に表示
+      const userMessage: MessageType = {
+        id: Date.now(),
+        sessionId,
+        role: 'user',
+        content,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      setMessages(prev => [...prev, userMessage]);
+
+      // AIの応答用の仮メッセージを作成
+      const tempAssistantMessage: MessageType = {
+        id: Date.now() + 1,
+        sessionId,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      setMessages(prev => [...prev, tempAssistantMessage]);
+
       const response = await fetch(`/api/chat/${sessionId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ message: content }),
+        signal: abortControllerRef.current.signal
       });
       
       if (!response.ok) {
         throw new Error('メッセージの送信に失敗しました');
       }
-      
-      const data = await response.json();
-      setMessages((prev) => [...prev, data.userMessage, data.assistantMessage]);
+
+      if (!response.body) {
+        throw new Error('レスポンスボディが空です');
+      }
+
+      let accumulatedContent = '';
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        accumulatedContent += chunk;
+
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === tempAssistantMessage.id 
+              ? { ...msg, content: accumulatedContent }
+              : msg
+          )
+        );
+      }
+
+      // ストリーミング完了後、完成したメッセージを保存
+      const saveResponse = await fetch(`/api/chat/${sessionId}/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: accumulatedContent }),
+      });
+
+      if (!saveResponse.ok) {
+        console.error('メッセージの保存に失敗しました');
+      } else {
+        const { message: savedMessage } = await saveResponse.json();
+        // 保存されたメッセージのIDで一時メッセージを更新
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === tempAssistantMessage.id 
+              ? savedMessage
+              : msg
+          )
+        );
+      }
+
       refreshSessions();
     } catch (error) {
-      console.error('エラー:', error);
-      alert('メッセージの送信に失敗しました');
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('ストリーミングがキャンセルされました');
+      } else {
+        console.error('エラー:', error);
+        alert('メッセージの送信に失敗しました');
+        // エラー時は仮のアシスタントメッセージを削除
+        setMessages(prev => prev.filter(msg => msg.role === 'user'));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -72,6 +168,7 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
               />
             ))
           )}
+          <div ref={messagesEndRef} />
         </div>
       </div>
       
