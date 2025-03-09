@@ -100,10 +100,18 @@ npx prisma db seed
 ```
 
 4. Configure environment variables:
-   - Copy `.env.local.example` to `.env.local`
-   - Set your O3-mini API configuration
-   - Set up NextAuth.js secret: `NEXTAUTH_SECRET=your_secret_here`
-   - Set database URL: `DATABASE_URL="file:./prisma/dev.db"`
+   - Copy `.env.sample` to `.env`
+   - Configure the required settings in your `.env` file:
+
+```bash
+# Generate a secure secret for NextAuth.js
+openssl rand -base64 32
+# Or using Node.js:
+# node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+
+# Add the generated secret to your .env file
+NEXTAUTH_SECRET="your-generated-secret-key"
+```
 
 5. Start the development server:
 ```bash
@@ -115,6 +123,41 @@ npm run dev
 7. Default admin credentials:
    - Username: admin
    - Password: 12345678
+
+## Environment Variables
+
+The application requires the following environment variables to be set:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | SQLite database file path | `"file:./dev.db"` |
+| `NEXTAUTH_URL` | Base URL for NextAuth.js | `"http://localhost:3000"` |
+| `NEXTAUTH_SECRET` | Secret key for session encryption | Generated secure string |
+| `OPENAI_API_KEY` | OpenAI API key for the chat model | Your API key |
+
+## Authentication Setup
+
+This application uses NextAuth.js for authentication. Follow these steps to set it up properly:
+
+1. **Generate a secure secret key** - This is essential for secure session management:
+   ```bash
+   openssl rand -base64 32
+   ```
+   
+2. **Update your `.env` file** - Add the generated key:
+   ```
+   NEXTAUTH_SECRET="your-generated-secret"
+   NEXTAUTH_URL="http://localhost:3000"
+   ```
+
+3. **Initial Admin Account** - The database is seeded with an initial admin account:
+   - Username: `admin`
+   - Password: `12345678`
+   - After first login, it's recommended to change the default password
+
+4. **Custom Authentication Flow** - The application implements credential-based authentication with password hashing using bcrypt.
+
+5. **Session Management** - Sessions are stored in the database and managed by NextAuth.js, providing secure authentication state persistence.
 
 ## Authentication System
 
@@ -248,10 +291,18 @@ npx prisma db seed
 ```
 
 4. 環境変数の設定:
-   - `.env.local.example`を`.env.local`にコピー
-   - O3-mini APIの設定を行う
-   - NextAuth.jsのシークレットを設定: `NEXTAUTH_SECRET=your_secret_here`
-   - データベースURLを設定: `DATABASE_URL="file:./prisma/dev.db"`
+   - `.env.sample`を`.env`にコピー
+   - `.env`ファイルに必要な設定を行います:
+
+```bash
+# NextAuth.js用の安全なシークレットを生成
+openssl rand -base64 32
+# または Node.js を使用:
+# node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+
+# 生成したシークレットを.envファイルに追加
+NEXTAUTH_SECRET="生成されたシークレットキー"
+```
 
 5. 開発サーバーの起動:
 ```bash
@@ -263,6 +314,41 @@ npm run dev
 7. デフォルト管理者アカウント:
    - ユーザー名: admin
    - パスワード: 12345678
+
+## 環境変数
+
+アプリケーションには以下の環境変数が必要です:
+
+| 変数名 | 説明 | 例 |
+|----------|-------------|---------|
+| `DATABASE_URL` | SQLiteデータベースのファイルパス | `"file:./dev.db"` |
+| `NEXTAUTH_URL` | NextAuth.jsのベースURL | `"http://localhost:3000"` |
+| `NEXTAUTH_SECRET` | セッション暗号化用のシークレットキー | 生成されたセキュアな文字列 |
+| `OPENAI_API_KEY` | チャットモデル用のOpenAI APIキー | あなたのAPIキー |
+
+## 認証セットアップ
+
+このアプリケーションはNextAuth.jsを使用して認証を行います。適切に設定するには以下の手順に従ってください:
+
+1. **セキュアなシークレットキーを生成** - これはセキュアなセッション管理に不可欠です:
+   ```bash
+   openssl rand -base64 32
+   ```
+   
+2. **`.env`ファイルを更新** - 生成したキーを追加:
+   ```
+   NEXTAUTH_SECRET="生成したシークレット"
+   NEXTAUTH_URL="http://localhost:3000"
+   ```
+
+3. **初期管理者アカウント** - データベースには初期管理者アカウントがシードされています:
+   - ユーザー名: `admin`
+   - パスワード: `12345678`
+   - 初回ログイン後、デフォルトのパスワードを変更することをお勧めします
+
+4. **カスタム認証フロー** - アプリケーションはbcryptを使用したパスワードハッシュ化を伴う認証情報ベースの認証を実装しています。
+
+5. **セッション管理** - セッションはデータベースに保存され、NextAuth.jsによって管理され、セキュアな認証状態の永続化を提供します。
 
 ## 認証システム
 
