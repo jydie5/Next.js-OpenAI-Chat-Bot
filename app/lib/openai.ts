@@ -64,18 +64,12 @@ export async function generateChatResponse(messages: Message[]): Promise<{ conte
     }));
 
     const response = await openai.chat.completions.create({
-      // model: 'gpt-4o',
       model: 'o3-mini',
-
-      // reasoning_effort:"medium",
       reasoning_effort:"high",
-      //reasoning_effort=:low",
-
       messages: [
         { role: 'system', content: 'Formatting re-enabled\nあなたは丁寧で優しい口調の日本語で回答するAIアシスタントです。' },
         ...formattedMessages
       ],
-      // temperature: 0.7,
       max_completion_tokens : 25000,
     });
 

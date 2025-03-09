@@ -2,13 +2,25 @@ describe('Chat Bot', () => {
   beforeEach(() => {
     // 各テスト前にトップページを訪問
     cy.visit('/');
-    // APIレスポンスをモック
-    cy.intercept('POST', '/api/chat', {
+    // ストリーミングをオフにする
+    cy.get('#streaming-mode').click();
+    
+    // 非ストリーミングAPIエンドポイントをモック
+    cy.intercept('POST', '/api/chat/normal', {
       statusCode: 200,
       body: {
-        role: 'assistant',
         content: 'これはモックレスポンスです。実際のAPIは呼び出されていません。',
-      },
+        isLast: true,
+        debugInfo: {
+          id: 'mock-id',
+          model: 'mock-model',
+          usage: {
+            completion_tokens: 0,
+            prompt_tokens: 0,
+            total_tokens: 0
+          }
+        }
+      }
     }).as('chatRequest');
   });
 
