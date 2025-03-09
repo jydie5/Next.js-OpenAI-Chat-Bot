@@ -2,6 +2,8 @@
 
 A sophisticated chat bot application leveraging Next.js and O3-mini, optimized for high performance and reliability.
 
+![alt text](image-1.png)
+
 ## Features
 
 - 🤖 Integrated with O3-mini language model

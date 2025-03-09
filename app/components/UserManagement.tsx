@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { User } from '@prisma/client';
+import { useRouter } from 'next/navigation';
 
 interface UserWithSessionCount extends Omit<User, 'password'> {
   _count: {
@@ -13,6 +14,7 @@ export default function UserManagement() {
   const [users, setUsers] = useState<UserWithSessionCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserWithSessionCount | null>(null);
   const [formData, setFormData] = useState({
@@ -20,6 +22,7 @@ export default function UserManagement() {
     password: '',
     isRoot: false,
   });
+  const router = useRouter();
 
   const fetchUsers = async () => {
     try {
@@ -43,6 +46,7 @@ export default function UserManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     try {
       const response = await fetch('/api/admin/users', {
@@ -63,6 +67,14 @@ export default function UserManagement() {
 
       await fetchUsers();
       setIsModalOpen(false);
+      
+      // 新規ユーザー作成時のメッセージを追加
+      if (!editingUser) {
+        setSuccess(`ユーザー「${formData.username}」を作成しました。このユーザーでログインするには、一度ログアウトして再度ログインしてください。`);
+      } else {
+        setSuccess(`ユーザー「${formData.username}」を更新しました。`);
+      }
+      
       resetForm();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'エラーが発生しました');
@@ -84,6 +96,7 @@ export default function UserManagement() {
       }
 
       await fetchUsers();
+      setSuccess('ユーザーを削除しました');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'エラーが発生しました');
     }
@@ -158,6 +171,22 @@ export default function UserManagement() {
       {error && (
         <div className="p-4 mb-6 rounded-lg bg-red-500/10 border border-red-500/50 text-red-400">
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="p-4 mb-6 rounded-lg bg-green-500/10 border border-green-500/50 text-green-400">
+          {success}
+          {!editingUser && success.includes('作成しました') && (
+            <div className="mt-2">
+              <button 
+                onClick={() => router.push('/login')}
+                className="text-sky-400 hover:text-sky-300 font-medium underline"
+              >
+                ログイン画面に移動する
+              </button>
+            </div>
+          )}
         </div>
       )}
 
