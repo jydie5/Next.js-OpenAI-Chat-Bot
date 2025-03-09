@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -12,9 +11,7 @@ export default function Sidebar() {
   const prevPathRef = useRef(pathname);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
-  // URLが変わった時だけセッションリストを更新し、無限リフレッシュを防止
   useEffect(() => {
-    // 実際にパスが変わった場合のみリフレッシュを実行
     if (prevPathRef.current !== pathname) {
       refreshSessions();
       prevPathRef.current = pathname;
@@ -23,29 +20,22 @@ export default function Sidebar() {
 
   const handleNewChat = async () => {
     try {
-      // 連続クリック防止
       if (isCreatingChat) return;
-      
       setIsCreatingChat(true);
       
-      // APIを使って新規セッションを作成
       const response = await fetch('/api/sessions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       });
-
+      
       if (!response.ok) {
         throw new Error('新規チャットの作成に失敗しました');
       }
-
+      
       const data = await response.json();
-      
-      // セッションリストを更新
       await refreshSessions();
-      
-      // 作成されたチャットルームに遷移
       router.push(`/chat/${data.session.id}`);
     } catch (error) {
       console.error('エラー:', error);
@@ -66,42 +56,79 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 h-[calc(100vh-theme(spacing.16))] bg-gray-800 text-white p-4 flex flex-col">
-      <button
-        onClick={handleNewChat}
-        disabled={isCreatingChat}
-        className={`w-full ${
-          isCreatingChat ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
-        } text-white font-bold py-2 px-4 rounded mb-4 transition-colors`}
-      >
-        {isCreatingChat ? '作成中...' : '新規チャット'}
-      </button>
-      <div className="flex-1 overflow-y-auto space-y-2">
-        {loading ? (
-          <div className="text-center text-gray-400">読み込み中...</div>
-        ) : sessions.length > 0 ? (
-          sessions.map((session) => (
-            <Link
-              key={session.id}
-              href={`/chat/${session.id}`}
-              className={`block p-3 rounded-lg transition-colors ${
-                pathname === `/chat/${session.id}`
-                  ? 'bg-gray-700'
-                  : 'hover:bg-gray-700'
-              }`}
-            >
-              <div className="font-medium truncate">{session.title}</div>
-              <div className="flex justify-between text-sm text-gray-400 mt-1">
-                <span>{formatDate(session.createdAt)}</span>
-                <span>{session._count.messages}件</span>
+    <div className="w-72 h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-900 to-slate-800 text-white">
+      <div className="h-full glass-effect">
+        <div className="p-4 border-b border-slate-700/50">
+          <button
+            onClick={handleNewChat}
+            disabled={isCreatingChat}
+            className="w-full primary-button flex items-center justify-center gap-2 py-3"
+          >
+            {isCreatingChat ? (
+              <>
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span>作成中...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <span>新規チャット</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="h-[calc(100%-5rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent p-3 space-y-2">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-slate-400 flex items-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span>読み込み中...</span>
               </div>
-            </Link>
-          ))
-        ) : (
-          <div className="text-center text-gray-400">
-            チャット履歴がありません
-          </div>
-        )}
+            </div>
+          ) : sessions.length > 0 ? (
+            sessions.map((session) => (
+              <Link
+                key={session.id}
+                href={`/chat/${session.id}`}
+                className={`block p-3 rounded-xl transition-all duration-200 border 
+                  ${pathname === `/chat/${session.id}`
+                    ? 'bg-slate-700/50 border-sky-500/50 shadow-lg shadow-sky-500/10'
+                    : 'border-transparent hover:bg-slate-700/30 hover:border-slate-600/50'
+                  }`}
+              >
+                <div className="font-medium text-slate-200 truncate">
+                  {session.title || `Chat #${session.id}`}
+                </div>
+                <div className="flex justify-between text-sm text-slate-400 mt-1">
+                  <span>{formatDate(session.createdAt)}</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs bg-slate-700/50 border border-slate-600/50">
+                    {session._count.messages}件
+                  </span>
+                </div>
+              </Link>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 
+                            flex items-center justify-center shadow-lg">
+                <span className="text-2xl">💬</span>
+              </div>
+              <div className="text-slate-400">
+                <p className="font-medium mb-1">チャット履歴がありません</p>
+                <p className="text-sm text-slate-500">新規チャットを作成してください</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

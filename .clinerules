@@ -7,6 +7,7 @@
 ├── .gitignore
 ├── cypress.config.js
 ├── middleware.ts
+├── next-env.d.ts
 ├── next.config.js
 ├── package.json
 ├── package-lock.json
@@ -19,16 +20,25 @@
 │   ├── globals.css
 │   ├── layout.tsx
 │   ├── page.tsx
+│   ├── admin/
+│   │   └── page.tsx
 │   ├── api/
+│   │   ├── admin/
+│   │   │   ├── sessions/
+│   │   │   │   └── route.ts
+│   │   │   └── users/
+│   │   │       └── route.ts
 │   │   ├── auth/
 │   │   │   └── [...nextauth]/
 │   │   │       └── route.ts
-│   │   └── chat/
-│   │       ├── route.ts
-│   │       ├── [id]/
-│   │       │   └── route.ts
-│   │       └── normal/
-│   │           └── route.ts
+│   │   ├── chat/
+│   │   │   ├── route.ts
+│   │   │   ├── [id]/
+│   │   │   │   └── route.ts
+│   │   │   └── normal/
+│   │   │       └── route.ts
+│   │   └── sessions/
+│   │       └── route.ts
 │   ├── chat/
 │   │   └── [id]/
 │   │       ├── ChatRoom.tsx
@@ -39,10 +49,16 @@
 │   │   ├── LoginForm.tsx
 │   │   ├── Message.tsx
 │   │   ├── NavigationBar.tsx
+│   │   ├── SessionContext.tsx
+│   │   ├── SessionManagement.tsx
 │   │   ├── SessionProvider.tsx
-│   │   └── Sidebar.tsx
+│   │   ├── SessionUpdater.tsx
+│   │   ├── Sidebar.tsx
+│   │   └── UserManagement.tsx
 │   ├── lib/
-│   │   └── openai.ts
+│   │   ├── auth.ts
+│   │   ├── openai.ts
+│   │   └── prisma.ts
 │   ├── login/
 │   │   └── page.tsx
 │   └── new/
@@ -56,6 +72,7 @@
 │       ├── commands.js
 │       └── e2e.js
 ├── prisma/
+│   ├── dev.db
 │   ├── schema.prisma
 │   ├── seed.ts
 │   └── migrations/
@@ -65,34 +82,27 @@
 ├── public/
 └── types/
     └── next-auth.d.ts
-
 ### file tree end
-
 このプロジェクトはNext.js、OpenAI API、Tailwind CSS、Prisma、NextAuth.jsを使用したチャットボットアプリケーションです。
-
 主な構造:
 1. フロントエンド
    - app/page.tsx: メインページ
-   - app/components/: 各種コンポーネント（チャット、認証、ナビゲーション等）
+   - app/components/: 各種コンポーネント（チャット、認証、セッション管理、ユーザー管理等）
    - app/chat/[id]/: チャットルーム
    - Tailwind CSSによるスタイリング
-
 2. バックエンド
    - app/api/chat/: チャットAPIエンドポイント
    - app/api/auth/: 認証APIエンドポイント
-   - app/lib/openai.ts: OpenAI APIクライアント
-   - Prisma: データベース操作
-
+   - app/api/admin/: 管理者用APIエンドポイント
+   - app/api/sessions/: セッション管理API
+   - app/lib/: 共通ライブラリ（OpenAI, 認証, Prisma等）
 3. 認証
    - NextAuth.jsによるユーザー認証
    - ミドルウェアによる保護されたルート
-
 4. データベース
    - Prisma ORM
    - SQLiteデータベース
    - マイグレーション管理
-
 5. テスト
    - Cypressを使用したE2Eテスト
-
 ### 要件定義はrequiremnts.mdを参照してください。実装が終わった物にはチェックボックスをつけて継続作業者が分かりやすいようにその都度更新してください。

@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import Message from '../../components/Message';
 import ChatInput from '../../components/ChatInput';
@@ -16,9 +15,7 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
   const [isLoading, setIsLoading] = useState(false);
   const { refreshSessions } = useSessionContext();
 
-  // コンポーネントのマウント時に一度リフレッシュを実行
   useEffect(() => {
-    // 新規チャット作成直後やページロード時にサイドバーを更新
     refreshSessions();
   }, [refreshSessions]);
 
@@ -32,15 +29,13 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         },
         body: JSON.stringify({ message: content }),
       });
-
+      
       if (!response.ok) {
         throw new Error('メッセージの送信に失敗しました');
       }
-
+      
       const data = await response.json();
       setMessages((prev) => [...prev, data.userMessage, data.assistantMessage]);
-      
-      // メッセージ送信後にセッションリストを更新
       refreshSessions();
     } catch (error) {
       console.error('エラー:', error);
@@ -51,18 +46,40 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-theme(spacing.32))]">
-      <div className="flex-1 overflow-y-auto">
-        {messages.map((message) => (
-          <Message
-            key={message.id}
-            role={message.role as 'user' | 'assistant'}
-            content={message.content}
-          />
-        ))}
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-900 to-slate-800">
+      <div className="glass-effect border-b border-slate-700/50 px-4 py-3">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-lg font-semibold gradient-text">Chat Session #{sessionId}</h1>
+        </div>
       </div>
       
-      <ChatInput onSubmit={handleSubmit} disabled={isLoading} />
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center text-slate-400 space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center">
+                <span className="text-2xl">💭</span>
+              </div>
+              <h2 className="text-xl font-medium gradient-text">新しい会話を始めましょう</h2>
+              <p className="text-sm text-slate-500">下のテキストボックスにメッセージを入力してください</p>
+            </div>
+          ) : (
+            messages.map((message) => (
+              <Message
+                key={message.id}
+                role={message.role as 'user' | 'assistant'}
+                content={message.content}
+              />
+            ))
+          )}
+        </div>
+      </div>
+      
+      <div className="glass-effect border-t border-slate-700/50 p-4">
+        <div className="max-w-4xl mx-auto">
+          <ChatInput onSubmit={handleSubmit} disabled={isLoading} />
+        </div>
+      </div>
     </div>
   );
 }
