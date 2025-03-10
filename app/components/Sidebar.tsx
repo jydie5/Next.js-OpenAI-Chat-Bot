@@ -22,6 +22,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const prevPathRef = useRef(pathname);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const [deletingSessionId, setDeletingSessionId] = useState<number | null>(null);
   const { status: authStatus } = useSession();
 
   // セッションを作成日時の降順でソート
@@ -75,6 +76,32 @@ export default function Sidebar() {
     }
   };
 
+  const handleDeleteSession = async (sessionId: number) => {
+    if (!window.confirm('このチャットを削除してもよろしいですか？')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/sessions?id=${sessionId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('チャットの削除に失敗しました');
+      }
+
+      await refreshSessions();
+      
+      // 削除したセッションが現在表示中のセッションだった場合、ホームにリダイレクト
+      if (pathname === `/chat/${sessionId}`) {
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('チャット削除エラー:', error);
+      alert('チャットの削除に失敗しました');
+    }
+  };
+
   if (authStatus === 'loading' || authStatus === 'unauthenticated') {
     return (
       <aside className="w-80 h-[calc(100vh-4rem)] overflow-y-auto bg-slate-900/50 border-r border-slate-700/50 p-4">
@@ -123,25 +150,38 @@ export default function Sidebar() {
           </div>
         ) : sortedSessions.length > 0 ? (
           sortedSessions.map((session) => (
-            <Link
-              key={session.id}
-              href={`/chat/${session.id}`}
-              className={`block p-3 rounded-xl transition-all duration-200 border 
-                ${pathname === `/chat/${session.id}`
-                  ? 'bg-slate-700/50 border-sky-500/50 shadow-lg shadow-sky-500/10'
-                  : 'border-transparent hover:bg-slate-700/30 hover:border-slate-600/50'
-                }`}
-            >
-              <div className="font-medium text-slate-200 truncate">
-                {session.title || `Chat #${session.id}`}
-              </div>
-              <div className="flex justify-between text-sm text-slate-400 mt-1">
-                <span>{formatDate(session.createdAt)}</span>
-                <span className="px-2 py-0.5 rounded-full text-xs bg-slate-700/50 border border-slate-600/50">
-                  {session._count.messages}件
-                </span>
-              </div>
-            </Link>
+            <div key={session.id} className="group relative">
+              <Link
+                href={`/chat/${session.id}`}
+                className={`block p-3 rounded-xl transition-all duration-200 border 
+                  ${pathname === `/chat/${session.id}`
+                    ? 'bg-slate-700/50 border-sky-500/50 shadow-lg shadow-sky-500/10'
+                    : 'border-transparent hover:bg-slate-700/30 hover:border-slate-600/50'
+                  }`}
+              >
+                <div className="font-medium text-slate-200 truncate">
+                  {session.title || `Chat #${session.id}`}
+                </div>
+                <div className="flex justify-between text-sm text-slate-400 mt-1">
+                  <span>{formatDate(session.createdAt)}</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs bg-slate-700/50 border border-slate-600/50">
+                    {session._count.messages}件
+                  </span>
+                </div>
+              </Link>
+              <button
+                onClick={() => handleDeleteSession(session.id)}
+                className="absolute top-3 right-3 p-2 rounded-lg opacity-0 group-hover:opacity-100
+                         bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300
+                         transition-all duration-200"
+                title="このチャットを削除"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
           ))
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
