@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSessionContext } from './SessionContext';
@@ -23,6 +23,13 @@ export default function Sidebar() {
   const prevPathRef = useRef(pathname);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const { status: authStatus } = useSession();
+
+  // セッションを作成日時の降順でソート
+  const sortedSessions = useMemo(() => {
+    return [...sessions].sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [sessions]);
 
   const handlePathChange = useCallback(() => {
     if (prevPathRef.current !== pathname && pathname?.startsWith('/chat/')) {
@@ -82,12 +89,6 @@ export default function Sidebar() {
       </aside>
     );
   }
-
-  const sortedSessions = [...sessions].sort((a, b) => {
-    if (a._count.messages === 0 && b._count.messages > 0) return 1;
-    if (a._count.messages > 0 && b._count.messages === 0) return -1;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
 
   return (
     <aside className="w-80 h-[calc(100vh-4rem)] overflow-y-auto bg-slate-900/50 border-r border-slate-700/50 p-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">

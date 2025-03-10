@@ -6,16 +6,7 @@ export default async function Home() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 
-                      flex items-center justify-center shadow-lg shadow-sky-500/30 mb-6">
-          <span className="text-3xl">🤖</span>
-        </div>
-        <h1 className="text-2xl font-bold gradient-text mb-2">AI ChatBot</h1>
-        <p className="text-slate-400">続行するにはログインしてください</p>
-      </div>
-    );
+    redirect('/login');
   }
 
   return (

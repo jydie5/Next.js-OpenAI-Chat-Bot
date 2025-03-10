@@ -62,9 +62,9 @@ export async function POST() {
     const newSession = await prisma.session.create({
       data: {
         userId: userId,
-        title: '新規チャット', // 最初のメッセージで後で更新
+        title: '新規チャット',
         messages: {
-          create: [] // 初期メッセージなし
+          create: []
         }
       }
     });

@@ -47,7 +47,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (!isMountedRef.current) return;
 
       const data = await response.json();
-      setSessions(data.sessions);
+      // セッションを作成日時の降順（新しい順）でソート
+      const sortedSessions = data.sessions.sort((a: SessionWithMessageCount, b: SessionWithMessageCount) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      setSessions(sortedSessions);
     } catch (error) {
       console.error('セッション取得エラー:', error);
     } finally {

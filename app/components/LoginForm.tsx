@@ -24,11 +24,10 @@ export default function LoginForm() {
       if (result?.error) {
         setError('ユーザー名またはパスワードが正しくありません');
       } else {
-        // ログイン成功後に新しいセッション情報を取得するため、
-        // ページをリロードしてからリダイレクト
+        // ログイン成功後に新規チャットページにリダイレクト
         router.refresh();
         setTimeout(() => {
-          router.push('/');
+          router.push('/new');
         }, 100);
       }
     } catch (error) {
@@ -39,8 +38,8 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800">
-      <div className="max-w-md w-full m-4">
+    <div className="flex items-center justify-center flex-1 p-4">
+      <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 shadow-lg shadow-sky-500/30 mb-6">
             <span className="text-3xl">🤖</span>
