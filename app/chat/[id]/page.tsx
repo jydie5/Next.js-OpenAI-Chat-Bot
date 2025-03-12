@@ -1,17 +1,18 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { PrismaClient } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import ChatRoom from './ChatRoom';
 import SessionUpdater from '../../components/SessionUpdater';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 interface PageProps {
   params: {
     id: string;
   };
 }
+
+// データの再検証を無効化して、キャッシュを防ぐ
+export const revalidate = 0;
 
 export default async function ChatPage({ params }: PageProps) {
   const session = await getServerSession(authOptions);
@@ -45,7 +46,11 @@ export default async function ChatPage({ params }: PageProps) {
   return (
     <>
       <SessionUpdater />
-      <ChatRoom initialMessages={chatSession.messages} sessionId={chatSession.id} />
+      <ChatRoom 
+        key={chatSession.id} // キーを追加して強制的に再マウント
+        initialMessages={chatSession.messages} 
+        sessionId={chatSession.id} 
+      />
     </>
   );
 }

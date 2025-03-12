@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Message from '../../components/Message';
 import ChatInput from '../../components/ChatInput';
 import { useSessionContext } from '../../components/SessionContext';
@@ -17,36 +17,41 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
   const { refreshSessions } = useSessionContext();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const currentSessionIdRef = useRef<number>(sessionId);
+  const isUnmountedRef = useRef(false);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  useEffect(() => {
-    if (currentSessionIdRef.current !== sessionId) {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      setMessages(initialMessages);
-      currentSessionIdRef.current = sessionId;
+  // メッセージの状態を更新
+  const updateMessages = useCallback((newMessages: MessageType[] | ((prev: MessageType[]) => MessageType[])) => {
+    if (!isUnmountedRef.current) {
+      setMessages(newMessages);
     }
-  }, [sessionId, initialMessages]);
+  }, []);
+
+  // スクロール処理
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
 
   useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  // 初期化とクリーンアップ
+  useEffect(() => {
+    isUnmountedRef.current = false;
+    updateMessages(initialMessages);
+
     return () => {
+      isUnmountedRef.current = true;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, []);
+  }, [initialMessages, updateMessages]);
 
   const handleSubmit = async (content: string, config: ChatConfig) => {
-    if (currentSessionIdRef.current !== sessionId) {
-      console.warn('Session ID mismatch, aborting submit');
-      return;
-    }
-
+    if (isUnmountedRef.current) return;
     setIsLoading(true);
 
     if (abortControllerRef.current) {
@@ -62,7 +67,7 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         content,
         createdAt: new Date()
       };
-      setMessages(prev => [...prev, userMessage]);
+      updateMessages([...messages, userMessage]);
 
       const tempAssistantMessage: MessageType = {
         id: Date.now() + 1,
@@ -71,7 +76,7 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         content: '',
         createdAt: new Date()
       };
-      setMessages(prev => [...prev, tempAssistantMessage]);
+      updateMessages([...messages, userMessage, tempAssistantMessage]);
 
       const response = await fetch(`/api/chat/${sessionId}`, {
         method: 'POST',
@@ -105,9 +110,9 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         const chunk = decoder.decode(value);
         accumulatedContent += chunk;
 
-        if (currentSessionIdRef.current === sessionId) {
-          setMessages(prev => 
-            prev.map(msg => 
+        if (!isUnmountedRef.current) {
+          updateMessages((prevMessages: MessageType[]) => 
+            prevMessages.map((msg: MessageType) => 
               msg.id === tempAssistantMessage.id 
                 ? { ...msg, content: accumulatedContent }
                 : msg
@@ -116,7 +121,7 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         }
       }
 
-      if (currentSessionIdRef.current === sessionId) {
+      if (!isUnmountedRef.current) {
         const saveResponse = await fetch(`/api/chat/${sessionId}/save`, {
           method: 'POST',
           headers: {
@@ -129,8 +134,8 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
           console.error('メッセージの保存に失敗しました');
         } else {
           const { message: savedMessage } = await saveResponse.json();
-          setMessages(prev => 
-            prev.map(msg => 
+          updateMessages((prevMessages: MessageType[]) => 
+            prevMessages.map((msg: MessageType) => 
               msg.id === tempAssistantMessage.id 
                 ? savedMessage
                 : msg
@@ -140,15 +145,17 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         }
       }
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('ストリーミングがキャンセルされました');
-      } else {
-        console.error('エラー:', error);
-        alert('メッセージの送信に失敗しました');
-        setMessages(prev => prev.filter(msg => msg.role === 'user'));
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.log('ストリーミングがキャンセルされました');
+        } else {
+          console.error('エラー:', error);
+          alert('メッセージの送信に失敗しました');
+          updateMessages((prev: MessageType[]) => prev.filter((msg: MessageType) => msg.role === 'user'));
+        }
       }
     } finally {
-      if (currentSessionIdRef.current === sessionId) {
+      if (!isUnmountedRef.current) {
         setIsLoading(false);
       }
     }
