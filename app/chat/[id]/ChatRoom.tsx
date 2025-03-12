@@ -4,7 +4,7 @@ import Message from '../../components/Message';
 import ChatInput from '../../components/ChatInput';
 import { useSessionContext } from '../../components/SessionContext';
 import type { Message as MessageType } from '@prisma/client';
-import type { ReasoningEffort } from '../../lib/openai';
+import type { ChatConfig } from '../../lib/openai';
 
 interface ChatRoomProps {
   initialMessages: MessageType[];
@@ -41,7 +41,7 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
     };
   }, []);
 
-  const handleSubmit = async (content: string, reasoningEffort: ReasoningEffort) => {
+  const handleSubmit = async (content: string, config: ChatConfig) => {
     if (currentSessionIdRef.current !== sessionId) {
       console.warn('Session ID mismatch, aborting submit');
       return;
@@ -80,7 +80,8 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         },
         body: JSON.stringify({ 
           message: content,
-          reasoningEffort
+          model: config.model,
+          reasoningEffort: config.reasoningEffort
         }),
         signal: abortControllerRef.current.signal
       });

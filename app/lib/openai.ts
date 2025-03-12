@@ -2,33 +2,55 @@ import OpenAI from 'openai';
 
 export type ReasoningEffort = 'high' | 'medium' | 'low';
 
+export type ModelConfig = {
+  model: string;
+  description: string;
+  supportsReasoningEffort?: boolean;
+};
+
+// モデル設定の定義
+export const MODEL_CONFIGS: Record<string, ModelConfig> = {
+  'o3-mini': {
+    model: 'o3-mini',
+    description: 'o3-mini',
+    supportsReasoningEffort: true
+  },
+  'gpt-4o': {
+    model: 'gpt-4o',
+    description: 'gpt-4o',
+    supportsReasoningEffort: false
+  }
+};
+
 // コードブロックをMarkdown形式でフォーマットする関数
 function formatResponseAsMarkdown(content: string): string {
-  // コードブロックが```で既に囲まれているかチェック
   if (content.includes('```')) {
     return content;
   }
 
-  // コードブロックパターンを検出して適切にマークアップ
   let formattedContent = content
-    // コード例などの説明文が続くパターン
     .replace(/(以下|下記|次)(?:は|の|が|に).*?[：:]?\n([\s\S]*?)(?=\n\n|$)/g, (_, prefix, code) => {
       const cleanCode = code.trim();
       return `${prefix}\n\`\`\`typescript\n${cleanCode}\n\`\`\`\n`;
     })
-    // 関数定義やプログラミング構文で始まるパターン
     .replace(/\b((?:function|class|const|let|var|if|for|while)\s+[\s\S]*?)(?=\n\n|$)/g, (_, code) => {
       return `\n\`\`\`typescript\n${code.trim()}\n\`\`\`\n`;
     })
-    // インラインコードをバッククオートで囲む
-    .replace(/`([^`]+)`/g, '`$1`');  // 既存のインラインコードは保持
+    .replace(/`([^`]+)`/g, '`$1`');
 
   return formattedContent;
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// OpenAIクライアントをサーバーサイドでのみ初期化
+let openai: OpenAI;
+if (typeof window === 'undefined') {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY environment variable is required');
+  }
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
 
 export type DebugInfo = {
   id: string;
@@ -58,25 +80,45 @@ export type Message = {
   debugInfo?: DebugInfo;
 };
 
+export type ChatConfig = {
+  model: string;
+  reasoningEffort?: ReasoningEffort;
+};
+
 export async function generateChatResponse(
-  messages: Message[], 
-  reasoningEffort: ReasoningEffort = 'medium'
+  messages: Message[],
+  config: ChatConfig
 ): Promise<{ content: string; debugInfo: DebugInfo }> {
   try {
+    if (!openai) {
+      throw new Error('OpenAI client is not initialized');
+    }
+
     const formattedMessages = messages.map(({ role, content }) => ({
       role,
       content,
     }));
 
-    const response = await openai.chat.completions.create({
-      model: 'o3-mini',
-      reasoning_effort: reasoningEffort,
-      messages: [
-        { role: 'system', content: 'Formatting re-enabled\nあなたは丁寧で優しい口調の日本語で回答するAIアシスタントです。' },
-        ...formattedMessages
-      ],
-      max_completion_tokens: 25000,
-    });
+    const response = await openai.chat.completions.create(
+      config.model === 'o3-mini' 
+        ? {
+            model: 'o3-mini',
+            reasoning_effort: config.reasoningEffort,
+            messages: [
+              { role: 'system', content: 'Formatting re-enabled\nあなたは丁寧で優しい口調の日本語で回答するAIアシスタントです。' },
+              ...formattedMessages
+            ],
+            max_completion_tokens: 25000,
+          }
+        : {
+            model: 'gpt-4o',
+            messages: [
+              { role: 'system', content: 'Formatting re-enabled\nあなたは丁寧で優しい口調の日本語で回答するAIアシスタントです。' },
+              ...formattedMessages
+            ],
+            max_tokens: 4096,
+          }
+    );
 
     const content = formatResponseAsMarkdown(response.choices[0]?.message?.content || '回答を生成できませんでした。');
     const usage = response.usage || {
@@ -125,25 +167,40 @@ export async function generateChatResponse(
 
 export async function generateStreamingChatResponse(
   messages: Message[],
-  reasoningEffort: ReasoningEffort = 'medium'
+  config: ChatConfig
 ) {
   try {
+    if (!openai) {
+      throw new Error('OpenAI client is not initialized');
+    }
+
     const formattedMessages = messages.map(({ role, content }) => ({
       role,
       content,
     }));
 
-    const stream = await openai.chat.completions.create({
-      model: 'o3-mini',
-      messages: [
-        { role: 'system', content: 'Formatting re-enabled\nあなたは丁寧で優しい口調の日本語で回答するAIアシスタントです。' },
-        ...formattedMessages
-      ],
-      reasoning_effort: reasoningEffort,
-      max_completion_tokens: 25000,
-      stream: true,
-    });
-
+    const stream = await openai.chat.completions.create(
+      config.model === 'o3-mini' 
+        ? {
+            model: 'o3-mini',
+            reasoning_effort: config.reasoningEffort,
+            messages: [
+              { role: 'system', content: 'Formatting re-enabled\nあなたは丁寧で優しい口調の日本語で回答するAIアシスタントです。' },
+              ...formattedMessages
+            ],
+            max_completion_tokens: 25000,
+            stream: true,
+          }
+        : {
+            model: 'gpt-4o',
+            messages: [
+              { role: 'system', content: 'Formatting re-enabled\nあなたは丁寧で優しい口調の日本語で回答するAIアシスタントです。' },
+              ...formattedMessages
+            ],
+            max_tokens: 4096,
+            stream: true,
+          }
+    );
     return stream;
   } catch (error) {
     console.error('OpenAI API ストリーミングエラー:', error);

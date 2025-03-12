@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { PrismaClient } from '@prisma/client';
 import { generateStreamingChatResponse } from '@/lib/openai';
 import { StreamingTextResponse } from 'ai';
+import { ChatConfig } from '@/lib/openai';
+import OpenAI from 'openai';
 
 const prisma = new PrismaClient();
 
@@ -45,7 +47,11 @@ export async function POST(
       );
     }
 
-    const { message, reasoningEffort } = await req.json();
+    const { message, model, reasoningEffort } = await req.json();
+    const chatConfig: ChatConfig = {
+      model: model || 'o3-mini',
+      reasoningEffort
+    };
 
     // ユーザーメッセージを保存
     const userMessage = await prisma.message.create({
@@ -64,15 +70,16 @@ export async function POST(
     messages.push({ role: 'user', content: message });
 
     // ストリーミングレスポンスを生成
-    const stream = await generateStreamingChatResponse(messages, reasoningEffort);
+    const stream = await generateStreamingChatResponse(messages, chatConfig);
 
     // OpenAIのストリームを適切な形式のReadableStreamに変換
     const textStream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         try {
-          for await (const chunk of stream) {
-            const text = chunk.choices[0]?.delta?.content || '';
+          // @ts-ignore streamはAsyncIterableですが、型定義の問題を回避するために一時的に無視します
+          for await (const part of stream) {
+            const text = part.choices[0]?.delta?.content || '';
             controller.enqueue(encoder.encode(text));
           }
           controller.close();

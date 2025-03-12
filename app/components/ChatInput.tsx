@@ -1,16 +1,16 @@
 'use client';
 
 import { useState, useRef, FormEvent } from 'react';
-
-type ReasoningEffort = 'high' | 'medium' | 'low';
+import { ReasoningEffort, MODEL_CONFIGS, ChatConfig } from '../lib/openai';
 
 interface ChatInputProps {
-  onSubmit: (message: string, reasoningEffort: ReasoningEffort) => Promise<void>;
+  onSubmit: (message: string, config: ChatConfig) => Promise<void>;
   disabled?: boolean;
 }
 
 export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   const [message, setMessage] = useState('');
+  const [selectedModel, setSelectedModel] = useState<string>('o3-mini');
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('medium');
   const [isLoading, setIsLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -20,7 +20,11 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
     if (!message.trim() || isLoading) return;
     setIsLoading(true);
     try {
-      await onSubmit(message, reasoningEffort);
+      const config: ChatConfig = {
+        model: selectedModel,
+        ...(MODEL_CONFIGS[selectedModel].supportsReasoningEffort ? { reasoningEffort } : {})
+      };
+      await onSubmit(message, config);
       setMessage('');
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
@@ -41,28 +45,47 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e as any).isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
   };
 
+  // 選択されたモデルがreasoningEffortをサポートしているか確認
+  const supportsReasoningEffort = MODEL_CONFIGS[selectedModel]?.supportsReasoningEffort;
+
   return (
     <form onSubmit={handleSubmit} className="relative">
       <div className="flex items-center gap-2 mb-2">
         <select
-          value={reasoningEffort}
-          onChange={(e) => setReasoningEffort(e.target.value as ReasoningEffort)}
+          value={selectedModel}
+          onChange={(e) => setSelectedModel(e.target.value)}
           disabled={disabled || isLoading}
           className="rounded-xl bg-slate-800/50 border border-slate-700/50 
                    text-slate-200 text-sm p-2 focus:border-sky-500 
                    focus:ring-1 focus:ring-sky-500 disabled:bg-slate-800/30"
         >
-          <option value="high">詳細な回答</option>
-          <option value="medium">標準的な回答</option>
-          <option value="low">簡潔な回答</option>
+          {Object.entries(MODEL_CONFIGS).map(([key, config]) => (
+            <option key={key} value={key}>
+              {config.description}
+            </option>
+          ))}
         </select>
+
+        {supportsReasoningEffort && (
+          <select
+            value={reasoningEffort}
+            onChange={(e) => setReasoningEffort(e.target.value as ReasoningEffort)}
+            disabled={disabled || isLoading}
+            className="rounded-xl bg-slate-800/50 border border-slate-700/50 
+                     text-slate-200 text-sm p-2 focus:border-sky-500 
+                     focus:ring-1 focus:ring-sky-500 disabled:bg-slate-800/30"
+          >
+            <option value="high">詳細な回答</option>
+            <option value="medium">標準的な回答</option>
+            <option value="low">簡潔な回答</option>
+          </select>
+        )}
       </div>
       <div className="relative">
         <textarea
