@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import ChatRoom from './ChatRoom';
 import SessionUpdater from '../../components/SessionUpdater';
 import { prisma } from '@/lib/prisma';
+import { unstable_noStore as noStore } from 'next/cache';
 
 interface PageProps {
   params: {
@@ -11,46 +12,54 @@ interface PageProps {
   };
 }
 
-// データの再検証を無効化して、キャッシュを防ぐ
-export const revalidate = 0;
-
 export default async function ChatPage({ params }: PageProps) {
+  // キャッシュを完全に無効化
+  noStore();
+
   const session = await getServerSession(authOptions);
   if (!session) {
     redirect('/login');
   }
 
-  const chatSession = await prisma.session.findUnique({
-    where: {
-      id: parseInt(params.id),
-    },
-    include: {
-      messages: {
-        orderBy: {
-          createdAt: 'asc',
-        },
+  try {
+    const chatSession = await prisma.session.findUnique({
+      where: {
+        id: parseInt(params.id),
       },
-      user: true,
-    },
-  });
+      include: {
+        messages: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+        user: true,
+      },
+    });
 
-  if (!chatSession) {
+    if (!chatSession) {
+      redirect('/');
+    }
+
+    // 他のユーザーのセッションへのアクセスを防ぐ
+    if (chatSession.userId !== parseInt(session.user.id)) {
+      redirect('/');
+    }
+
+    // データ取得時のタイムスタンプを追加
+    const timestamp = Date.now();
+
+    return (
+      <>
+        <SessionUpdater />
+        <ChatRoom 
+          key={`${chatSession.id}-${timestamp}`} // キーを更新時刻も含めて設定
+          initialMessages={chatSession.messages} 
+          sessionId={chatSession.id} 
+        />
+      </>
+    );
+  } catch (error) {
+    console.error('Error fetching chat session:', error);
     redirect('/');
   }
-
-  // 他のユーザーのセッションへのアクセスを防ぐ
-  if (chatSession.userId !== parseInt(session.user.id)) {
-    redirect('/');
-  }
-
-  return (
-    <>
-      <SessionUpdater />
-      <ChatRoom 
-        key={chatSession.id} // キーを追加して強制的に再マウント
-        initialMessages={chatSession.messages} 
-        sessionId={chatSession.id} 
-      />
-    </>
-  );
 }

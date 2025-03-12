@@ -14,6 +14,7 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('medium');
   const [isLoading, setIsLoading] = useState(false);
   const [dots, setDots] = useState('');
+  const [isComposing, setIsComposing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const loadingIntervalRef = useRef<NodeJS.Timeout>();
 
@@ -33,7 +34,7 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || isLoading) return;
+    if (!message.trim() || isLoading || isComposing) return;
     setIsLoading(true);
     startLoadingAnimation();
     try {
@@ -63,6 +64,7 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (isComposing) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -73,6 +75,15 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   useEffect(() => {
     return () => stopLoadingAnimation();
   }, []);
+
+  // IME入力の状態を監視
+  const handleCompositionStart = () => {
+    setIsComposing(true);
+  };
+
+  const handleCompositionEnd = () => {
+    setIsComposing(false);
+  };
 
   // 選択されたモデルがreasoningEffortをサポートしているか確認
   const supportsReasoningEffort = MODEL_CONFIGS[selectedModel]?.supportsReasoningEffort;
@@ -138,6 +149,8 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
           value={message}
           onChange={handleTextareaChange}
           onKeyDown={handleKeyDown}
+          onCompositionStart={handleCompositionStart}
+          onCompositionEnd={handleCompositionEnd}
           placeholder="メッセージを入力...(Shift + Enterで改行)"
           disabled={disabled || isLoading}
           className="w-full resize-none overflow-hidden rounded-xl bg-slate-800/50 
@@ -149,7 +162,7 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
         />
         <button
           type="submit"
-          disabled={disabled || isLoading || !message.trim()}
+          disabled={disabled || isLoading || !message.trim() || isComposing}
           className="absolute right-3 bottom-3 p-2 rounded-lg
                    bg-gradient-to-r from-sky-500 to-blue-600 
                    text-white shadow-lg hover:from-sky-600 hover:to-blue-700

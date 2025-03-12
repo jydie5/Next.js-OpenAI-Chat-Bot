@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import useSWR from 'swr';
 import Message from '../../components/Message';
 import ChatInput from '../../components/ChatInput';
 import { useSessionContext } from '../../components/SessionContext';
@@ -11,20 +12,35 @@ interface ChatRoomProps {
   sessionId: number;
 }
 
+interface MessagesResponse {
+  messages: MessageType[];
+}
+
+// メッセージフェッチャー関数
+const fetchMessages = async (sessionId: number): Promise<MessageType[]> => {
+  const response = await fetch(`/api/chat/${sessionId}/messages`);
+  if (!response.ok) throw new Error('Failed to fetch messages');
+  const data: MessagesResponse = await response.json();
+  return data.messages;
+};
+
 export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) {
-  const [messages, setMessages] = useState<MessageType[]>(initialMessages);
+  // SWRを使用してメッセージを管理
+  const { data: messages, mutate } = useSWR<MessageType[]>(
+    `/api/chat/${sessionId}/messages`,
+    () => fetchMessages(sessionId),
+    {
+      fallbackData: initialMessages,
+      refreshInterval: 0, // 自動更新は無効
+      revalidateOnFocus: true, // フォーカス時に再検証
+    }
+  );
+
   const [isLoading, setIsLoading] = useState(false);
   const { refreshSessions } = useSessionContext();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const isUnmountedRef = useRef(false);
-
-  // メッセージの状態を更新
-  const updateMessages = useCallback((newMessages: MessageType[] | ((prev: MessageType[]) => MessageType[])) => {
-    if (!isUnmountedRef.current) {
-      setMessages(newMessages);
-    }
-  }, []);
 
   // スクロール処理
   const scrollToBottom = useCallback(() => {
@@ -37,18 +53,16 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // 初期化とクリーンアップ
+  // クリーンアップ
   useEffect(() => {
     isUnmountedRef.current = false;
-    updateMessages(initialMessages);
-
     return () => {
       isUnmountedRef.current = true;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [initialMessages, updateMessages]);
+  }, []);
 
   const handleSubmit = async (content: string, config: ChatConfig) => {
     if (isUnmountedRef.current) return;
@@ -67,7 +81,9 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         content,
         createdAt: new Date()
       };
-      updateMessages([...messages, userMessage]);
+
+      // 最新のメッセージを含めた状態で更新
+      await mutate([...(messages || []), userMessage], false);
 
       const tempAssistantMessage: MessageType = {
         id: Date.now() + 1,
@@ -76,7 +92,9 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         content: '',
         createdAt: new Date()
       };
-      updateMessages([...messages, userMessage, tempAssistantMessage]);
+
+      // 一時的なアシスタントメッセージを追加
+      await mutate([...(messages || []), userMessage, tempAssistantMessage], false);
 
       const response = await fetch(`/api/chat/${sessionId}`, {
         method: 'POST',
@@ -111,12 +129,14 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         accumulatedContent += chunk;
 
         if (!isUnmountedRef.current) {
-          updateMessages((prevMessages: MessageType[]) => 
-            prevMessages.map((msg: MessageType) => 
-              msg.id === tempAssistantMessage.id 
-                ? { ...msg, content: accumulatedContent }
-                : msg
-            )
+          await mutate(
+            (currentMessages: MessageType[] = []) =>
+              currentMessages.map((msg: MessageType) =>
+                msg.id === tempAssistantMessage.id
+                  ? { ...msg, content: accumulatedContent }
+                  : msg
+              ),
+            false
           );
         }
       }
@@ -134,12 +154,12 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
           console.error('メッセージの保存に失敗しました');
         } else {
           const { message: savedMessage } = await saveResponse.json();
-          updateMessages((prevMessages: MessageType[]) => 
-            prevMessages.map((msg: MessageType) => 
-              msg.id === tempAssistantMessage.id 
-                ? savedMessage
-                : msg
-            )
+          await mutate(
+            (currentMessages: MessageType[] = []) =>
+              currentMessages.map((msg: MessageType) =>
+                msg.id === tempAssistantMessage.id ? savedMessage : msg
+              ),
+            true
           );
           await refreshSessions();
         }
@@ -151,7 +171,12 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         } else {
           console.error('エラー:', error);
           alert('メッセージの送信に失敗しました');
-          updateMessages((prev: MessageType[]) => prev.filter((msg: MessageType) => msg.role === 'user'));
+          // エラー時は最後のユーザーメッセージを除去
+          await mutate(
+            (currentMessages: MessageType[] = []) =>
+              currentMessages.filter((msg: MessageType) => msg.role === 'user'),
+            true
+          );
         }
       }
     } finally {
@@ -171,7 +196,7 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
       
       <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          {messages.length === 0 ? (
+          {!messages || messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center text-slate-400 space-y-4">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center">
                 <span className="text-2xl">💭</span>
@@ -180,7 +205,7 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
               <p className="text-sm text-slate-500">下のテキストボックスにメッセージを入力してください</p>
             </div>
           ) : (
-            messages.map((message) => (
+            messages.map((message: MessageType) => (
               <Message
                 key={message.id}
                 role={message.role as 'user' | 'assistant'}
