@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, FormEvent } from 'react';
+import { useState, useRef, useEffect, FormEvent } from 'react';
 import { ReasoningEffort, MODEL_CONFIGS, ChatConfig } from '../lib/openai';
 
 interface ChatInputProps {
@@ -13,12 +13,29 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   const [selectedModel, setSelectedModel] = useState<string>('o3-mini');
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('medium');
   const [isLoading, setIsLoading] = useState(false);
+  const [dots, setDots] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const loadingIntervalRef = useRef<NodeJS.Timeout>();
+
+  // ローディングアニメーションの制御
+  const startLoadingAnimation = () => {
+    loadingIntervalRef.current = setInterval(() => {
+      setDots(prev => (prev.length >= 3 ? '' : prev + '.'));
+    }, 500);
+  };
+
+  const stopLoadingAnimation = () => {
+    if (loadingIntervalRef.current) {
+      clearInterval(loadingIntervalRef.current);
+      setDots('');
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!message.trim() || isLoading) return;
     setIsLoading(true);
+    startLoadingAnimation();
     try {
       const config: ChatConfig = {
         model: selectedModel,
@@ -33,6 +50,7 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
       console.error('メッセージの送信に失敗しました:', error);
     } finally {
       setIsLoading(false);
+      stopLoadingAnimation();
     }
   };
 
@@ -50,6 +68,11 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
       handleSubmit(e);
     }
   };
+
+  // アンマウント時にインターバルをクリア
+  useEffect(() => {
+    return () => stopLoadingAnimation();
+  }, []);
 
   // 選択されたモデルがreasoningEffortをサポートしているか確認
   const supportsReasoningEffort = MODEL_CONFIGS[selectedModel]?.supportsReasoningEffort;
@@ -81,10 +104,32 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
                      text-slate-200 text-sm p-2 focus:border-sky-500 
                      focus:ring-1 focus:ring-sky-500 disabled:bg-slate-800/30"
           >
-            <option value="high">詳細な回答</option>
-            <option value="medium">標準的な回答</option>
-            <option value="low">簡潔な回答</option>
+            <option value="high">じっくり考えて回答</option>
+            <option value="medium">バランスよく考えて回答</option>
+            <option value="low">素早く考えて回答</option>
           </select>
+        )}
+
+        {isLoading && (
+          <div className="flex items-center text-slate-400 text-sm">
+            <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+                fill="none"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            <span>Thinking{dots}</span>
+          </div>
         )}
       </div>
       <div className="relative">
