@@ -2,13 +2,16 @@
 
 import { useState, useRef, FormEvent } from 'react';
 
+type ReasoningEffort = 'high' | 'medium' | 'low';
+
 interface ChatInputProps {
-  onSubmit: (message: string) => Promise<void>;
+  onSubmit: (message: string, reasoningEffort: ReasoningEffort) => Promise<void>;
   disabled?: boolean;
 }
 
 export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   const [message, setMessage] = useState('');
+  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('medium');
   const [isLoading, setIsLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -17,7 +20,7 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
     if (!message.trim() || isLoading) return;
     setIsLoading(true);
     try {
-      await onSubmit(message);
+      await onSubmit(message, reasoningEffort);
       setMessage('');
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
@@ -38,7 +41,7 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.isComposing || e.keyCode === 229) return;
+    if ((e as any).isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -47,6 +50,20 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
 
   return (
     <form onSubmit={handleSubmit} className="relative">
+      <div className="flex items-center gap-2 mb-2">
+        <select
+          value={reasoningEffort}
+          onChange={(e) => setReasoningEffort(e.target.value as ReasoningEffort)}
+          disabled={disabled || isLoading}
+          className="rounded-xl bg-slate-800/50 border border-slate-700/50 
+                   text-slate-200 text-sm p-2 focus:border-sky-500 
+                   focus:ring-1 focus:ring-sky-500 disabled:bg-slate-800/30"
+        >
+          <option value="high">詳細な回答</option>
+          <option value="medium">標準的な回答</option>
+          <option value="low">簡潔な回答</option>
+        </select>
+      </div>
       <div className="relative">
         <textarea
           ref={textareaRef}

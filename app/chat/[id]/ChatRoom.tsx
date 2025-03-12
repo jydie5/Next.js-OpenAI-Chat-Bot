@@ -4,6 +4,7 @@ import Message from '../../components/Message';
 import ChatInput from '../../components/ChatInput';
 import { useSessionContext } from '../../components/SessionContext';
 import type { Message as MessageType } from '@prisma/client';
+import type { ReasoningEffort } from '../../lib/openai';
 
 interface ChatRoomProps {
   initialMessages: MessageType[];
@@ -22,20 +23,16 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // セッションIDが変更された場合の処理
   useEffect(() => {
     if (currentSessionIdRef.current !== sessionId) {
-      // 前のセッションのストリーミングをキャンセル
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      // 新しいメッセージリストを設定
       setMessages(initialMessages);
       currentSessionIdRef.current = sessionId;
     }
   }, [sessionId, initialMessages]);
 
-  // コンポーネントのクリーンアップ
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -44,7 +41,7 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
     };
   }, []);
 
-  const handleSubmit = async (content: string) => {
+  const handleSubmit = async (content: string, reasoningEffort: ReasoningEffort) => {
     if (currentSessionIdRef.current !== sessionId) {
       console.warn('Session ID mismatch, aborting submit');
       return;
@@ -63,8 +60,7 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         sessionId,
         role: 'user',
         content,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date()
       };
       setMessages(prev => [...prev, userMessage]);
 
@@ -73,8 +69,7 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         sessionId,
         role: 'assistant',
         content: '',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date()
       };
       setMessages(prev => [...prev, tempAssistantMessage]);
 
@@ -83,7 +78,10 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({ 
+          message: content,
+          reasoningEffort
+        }),
         signal: abortControllerRef.current.signal
       });
       
@@ -117,7 +115,6 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
         }
       }
 
-      // レスポンスの保存は現在のセッションの場合のみ実行
       if (currentSessionIdRef.current === sessionId) {
         const saveResponse = await fetch(`/api/chat/${sessionId}/save`, {
           method: 'POST',
@@ -138,7 +135,6 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
                 : msg
             )
           );
-          // メッセージが保存された後にのみセッションを更新
           await refreshSessions();
         }
       }
@@ -148,7 +144,6 @@ export default function ChatRoom({ initialMessages, sessionId }: ChatRoomProps) 
       } else {
         console.error('エラー:', error);
         alert('メッセージの送信に失敗しました');
-        // エラー時は仮のアシスタントメッセージを削除
         setMessages(prev => prev.filter(msg => msg.role === 'user'));
       }
     } finally {

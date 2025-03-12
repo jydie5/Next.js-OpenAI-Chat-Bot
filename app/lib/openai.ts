@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
 
+export type ReasoningEffort = 'high' | 'medium' | 'low';
+
 // コードブロックをMarkdown形式でフォーマットする関数
 function formatResponseAsMarkdown(content: string): string {
   // コードブロックが```で既に囲まれているかチェック
@@ -56,7 +58,10 @@ export type Message = {
   debugInfo?: DebugInfo;
 };
 
-export async function generateChatResponse(messages: Message[]): Promise<{ content: string; debugInfo: DebugInfo }> {
+export async function generateChatResponse(
+  messages: Message[], 
+  reasoningEffort: ReasoningEffort = 'medium'
+): Promise<{ content: string; debugInfo: DebugInfo }> {
   try {
     const formattedMessages = messages.map(({ role, content }) => ({
       role,
@@ -65,12 +70,12 @@ export async function generateChatResponse(messages: Message[]): Promise<{ conte
 
     const response = await openai.chat.completions.create({
       model: 'o3-mini',
-      reasoning_effort:"high",
+      reasoning_effort: reasoningEffort,
       messages: [
         { role: 'system', content: 'Formatting re-enabled\nあなたは丁寧で優しい口調の日本語で回答するAIアシスタントです。' },
         ...formattedMessages
       ],
-      max_completion_tokens : 25000,
+      max_completion_tokens: 25000,
     });
 
     const content = formatResponseAsMarkdown(response.choices[0]?.message?.content || '回答を生成できませんでした。');
@@ -118,7 +123,10 @@ export async function generateChatResponse(messages: Message[]): Promise<{ conte
   }
 }
 
-export async function generateStreamingChatResponse(messages: Message[]) {
+export async function generateStreamingChatResponse(
+  messages: Message[],
+  reasoningEffort: ReasoningEffort = 'medium'
+) {
   try {
     const formattedMessages = messages.map(({ role, content }) => ({
       role,
@@ -131,9 +139,7 @@ export async function generateStreamingChatResponse(messages: Message[]) {
         { role: 'system', content: 'Formatting re-enabled\nあなたは丁寧で優しい口調の日本語で回答するAIアシスタントです。' },
         ...formattedMessages
       ],
-      reasoning_effort: "low",
-      // reasoning_effort: "medium",
-      // reasoning_effort: "high",
+      reasoning_effort: reasoningEffort,
       max_completion_tokens: 25000,
       stream: true,
     });

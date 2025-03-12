@@ -45,7 +45,7 @@ export async function POST(
       );
     }
 
-    const { message } = await req.json();
+    const { message, reasoningEffort } = await req.json();
 
     // ユーザーメッセージを保存
     const userMessage = await prisma.message.create({
@@ -64,7 +64,7 @@ export async function POST(
     messages.push({ role: 'user', content: message });
 
     // ストリーミングレスポンスを生成
-    const stream = await generateStreamingChatResponse(messages);
+    const stream = await generateStreamingChatResponse(messages, reasoningEffort);
 
     // OpenAIのストリームを適切な形式のReadableStreamに変換
     const textStream = new ReadableStream({
