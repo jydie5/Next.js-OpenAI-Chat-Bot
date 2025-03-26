@@ -17,6 +17,7 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   const [isComposing, setIsComposing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const loadingIntervalRef = useRef<NodeJS.Timeout>();
+  const justFinishedComposing = useRef(false);
 
   // ローディングアニメーションの制御
   const startLoadingAnimation = () => {
@@ -64,7 +65,7 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (isComposing) return;
+    if (isComposing || justFinishedComposing.current) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -79,10 +80,16 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   // IME入力の状態を監視
   const handleCompositionStart = () => {
     setIsComposing(true);
+    justFinishedComposing.current = false;
   };
 
   const handleCompositionEnd = () => {
     setIsComposing(false);
+    justFinishedComposing.current = true;
+    // 次のイベントループで状態をリセット
+    setTimeout(() => {
+      justFinishedComposing.current = false;
+    }, 0);
   };
 
   // 選択されたモデルがreasoningEffortをサポートしているか確認
@@ -178,7 +185,7 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
             </svg>
           ) : (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18l9-2zm0 0v-8" />
             </svg>
           )}
         </button>

@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { generateGeminiResponse, generateGeminiStreamingResponse } from './gemini';
 
 export type ReasoningEffort = 'high' | 'medium' | 'low';
 
@@ -6,6 +7,7 @@ export type ModelConfig = {
   model: string;
   description: string;
   supportsReasoningEffort?: boolean;
+  provider: 'openai' | 'gemini';
 };
 
 // モデル設定の定義
@@ -13,12 +15,20 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   'o3-mini': {
     model: 'o3-mini',
     description: 'o3-mini',
-    supportsReasoningEffort: true
+    supportsReasoningEffort: true,
+    provider: 'openai'
   },
   'gpt-4o': {
     model: 'gpt-4o',
     description: 'gpt-4o',
-    supportsReasoningEffort: false
+    supportsReasoningEffort: false,
+    provider: 'openai'
+  },
+  'gemini-2.5': {  // UIでの表示名はそのまま
+    model: 'gemini-2.0-flash',  // モデル名を更新
+    description: 'Gemini 2.0 Flash',  // 説明も更新
+    supportsReasoningEffort: false,
+    provider: 'gemini'
   }
 };
 
@@ -89,6 +99,15 @@ export async function generateChatResponse(
   messages: Message[],
   config: ChatConfig
 ): Promise<{ content: string; debugInfo: DebugInfo }> {
+  const modelConfig = MODEL_CONFIGS[config.model];
+  if (!modelConfig) {
+    throw new Error(`Unsupported model: ${config.model}`);
+  }
+
+  if (modelConfig.provider === 'gemini') {
+    return generateGeminiResponse(messages, { ...config, model: modelConfig.model });
+  }
+
   try {
     if (!openai) {
       throw new Error('OpenAI client is not initialized');
@@ -152,7 +171,7 @@ export async function generateChatResponse(
           },
           prompt_tokens_details: {
             audio_tokens: usage.prompt_tokens_details?.audio_tokens ?? 0,
-            cached_tokens: usage.prompt_tokens_details?.cached_tokens ?? 0
+            cached_tokens: 0
           }
         },
         service_tier: response.service_tier || 'default',
@@ -169,6 +188,15 @@ export async function generateStreamingChatResponse(
   messages: Message[],
   config: ChatConfig
 ) {
+  const modelConfig = MODEL_CONFIGS[config.model];
+  if (!modelConfig) {
+    throw new Error(`Unsupported model: ${config.model}`);
+  }
+
+  if (modelConfig.provider === 'gemini') {
+    return generateGeminiStreamingResponse(messages, { ...config, model: modelConfig.model });
+  }
+
   try {
     if (!openai) {
       throw new Error('OpenAI client is not initialized');

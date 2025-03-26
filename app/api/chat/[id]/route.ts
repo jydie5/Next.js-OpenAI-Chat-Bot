@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { PrismaClient } from '@prisma/client';
-import { generateStreamingChatResponse } from '@/lib/openai';
+import { generateStreamingChatResponse, MODEL_CONFIGS } from '@/lib/openai';
 import { StreamingTextResponse } from 'ai';
 import { ChatConfig } from '@/lib/openai';
-import OpenAI from 'openai';
+import type OpenAI from 'openai';
 
 const prisma = new PrismaClient();
 
@@ -72,18 +72,34 @@ export async function POST(
     // ストリーミングレスポンスを生成
     const stream = await generateStreamingChatResponse(messages, chatConfig);
 
-    // OpenAIのストリームを適切な形式のReadableStreamに変換
+    // モデルのプロバイダーを確認
+    const modelConfig = MODEL_CONFIGS[chatConfig.model];
+    const isGemini = modelConfig?.provider === 'gemini';
+
+    // ストリームを適切な形式のReadableStreamに変換
     const textStream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         try {
-          // @ts-ignore streamはAsyncIterableですが、型定義の問題を回避するために一時的に無視します
-          for await (const part of stream) {
-            const text = part.choices[0]?.delta?.content || '';
-            controller.enqueue(encoder.encode(text));
+          if (isGemini) {
+            const geminiStream = stream as AsyncGenerator<{ text: string }>;
+            for await (const chunk of geminiStream) {
+              if (chunk.text) {
+                controller.enqueue(encoder.encode(chunk.text));
+              }
+            }
+          } else {
+            // @ts-ignore OpenAIのストリーム型の問題を回避
+            for await (const part of stream) {
+              if ('choices' in part) {
+                const text = part.choices[0]?.delta?.content || '';
+                controller.enqueue(encoder.encode(text));
+              }
+            }
           }
           controller.close();
         } catch (error) {
+          console.error('Streaming error:', error);
           controller.error(error);
         }
       },
