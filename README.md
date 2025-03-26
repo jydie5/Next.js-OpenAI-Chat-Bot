@@ -1,12 +1,12 @@
-# Next.js O3-mini Chat Bot
+# Next.js Multi-Model Chat Bot (featuring Gemini 2.5)
 
-A sophisticated chat bot application leveraging Next.js and O3-mini, optimized for high performance and reliability.
+A sophisticated chat bot application leveraging Next.js with multiple AI models (O3-mini, GPT-4, Gemini 2.5), optimized for high performance and reliability.
 
 ![alt text](image-1.png)
 
 ## Features
 
-- 🤖 Integrated with O3-mini language model
+- 🤖 Integrated with O3-mini, GPT-4, and Gemini language models
 - ⚡ Real-time streaming responses
 - 📝 Full Markdown support
 - 🎨 Modern UI with Tailwind CSS
@@ -43,7 +43,7 @@ graph TD
 
 - **Frontend**: Next.js 14, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes
-- **Model**: O3-mini
+- **Model**: O3-mini, GPT-4o, Gemini 2.5 Pro Experimental
 - **Database**: SQLite with Prisma ORM
 - **Authentication**: NextAuth.js
 - **Testing**: Cypress
@@ -100,8 +100,9 @@ DATABASE_URL="file:./prisma/dev.db"
 NEXTAUTH_SECRET="temporary_secure_secret_key_please_change_in_production"
 NEXTAUTH_URL="http://localhost:3000"
 
-# OpenAI API configuration
+# API configuration
 OPENAI_API_KEY=your_openai_api_key_here
+GOOGLE_API_KEY=your_google_api_key_here  # Required for Gemini model
 ```
 
 Note: In production, make sure to replace the NEXTAUTH_SECRET with a secure random value:
@@ -192,13 +193,13 @@ Admin users have access to additional features:
 
 ---
 
-# Next.js O3-mini チャットボット
+# Next.js マルチモデル チャットボット（Gemini 2.5対応）
 
-Next.jsとO3-miniを活用した高性能で信頼性の高いチャットボットアプリケーション
+Next.jsと複数のAIモデル（O3-mini、GPT-4、Gemini 2.5）を活用した高性能で信頼性の高いチャットボットアプリケーション
 
 ## 特徴
 
-- 🤖 O3-mini言語モデルとの統合
+- 🤖 O3-mini、GPT-4、Gemini言語モデルとの統合
 - ⚡ リアルタイムストリーミングレスポンス
 - 📝 Markdown完全サポート
 - 🎨 Tailwind CSSによるモダンUI
@@ -235,7 +236,7 @@ graph TD
 
 - **フロントエンド**: Next.js 14, TypeScript, Tailwind CSS
 - **バックエンド**: Next.js APIルート
-- **モデル**: O3-mini
+- **モデル**: O3-mini, GPT-4o, Gemini 2.5 Pro Experimental
 - **データベース**: SQLite with Prisma ORM
 - **認証**: NextAuth.js
 - **テスト**: Cypress
@@ -292,8 +293,9 @@ DATABASE_URL="file:./prisma/dev.db"
 NEXTAUTH_SECRET="temporary_secure_secret_key_please_change_in_production"
 NEXTAUTH_URL="http://localhost:3000"
 
-# OpenAI API設定
+# API設定
 OPENAI_API_KEY=your_openai_api_key_here
+GOOGLE_API_KEY=your_google_api_key_here  # Geminiモデルに必要
 ```
 
 注意: 本番環境では、NEXTAUTH_SECRETを安全な乱数値に置き換えてください:
