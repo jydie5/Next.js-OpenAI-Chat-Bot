@@ -22,7 +22,7 @@ function convertToGeminiFormat(messages: Message[]) {
 function createGeminiDebugInfo(): DebugInfo {
   return {
     id: `gemini-${Date.now()}`,
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-pro-exp-03-25',
     usage: {
       completion_tokens: 0,
       prompt_tokens: 0,
@@ -65,7 +65,7 @@ export async function generateGeminiResponse(
 
     // チャットの作成
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.0-flash'
+      model: 'gemini-2.5-pro-exp-03-25'
     });
 
     // メッセージの準備
@@ -108,7 +108,7 @@ export async function generateGeminiStreamingResponse(
 
     // チャットの作成
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.0-flash'
+      model: 'gemini-2.5-pro-exp-03-25'
     });
     
     // メッセージの準備
