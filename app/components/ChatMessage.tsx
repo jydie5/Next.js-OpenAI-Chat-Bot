@@ -2,6 +2,19 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import jsx from 'react-syntax-highlighter/dist/cjs/languages/prism/jsx';
+import typescript from 'react-syntax-highlighter/dist/cjs/languages/prism/typescript';
+import javascript from 'react-syntax-highlighter/dist/cjs/languages/prism/javascript';
+import bash from 'react-syntax-highlighter/dist/cjs/languages/prism/bash';
+import python from 'react-syntax-highlighter/dist/cjs/languages/prism/python';
+
+SyntaxHighlighter.registerLanguage('jsx', jsx);
+SyntaxHighlighter.registerLanguage('typescript', typescript);
+SyntaxHighlighter.registerLanguage('javascript', javascript);
+SyntaxHighlighter.registerLanguage('bash', bash);
+SyntaxHighlighter.registerLanguage('python', python);
 
 type Props = {
   role: 'user' | 'assistant';
@@ -58,7 +71,7 @@ export default function ChatMessage({ role, content, debugInfo }: Props) {
                 remarkPlugins={[remarkGfm]}
                 skipHtml={false}
                 components={{
-                  pre: ({ children, node }) => {
+                  pre: ({ children }) => {
                     const code = React.Children.toArray(children).find(
                       child => React.isValidElement(child) && child.type === 'code'
                     );
@@ -66,21 +79,30 @@ export default function ChatMessage({ role, content, debugInfo }: Props) {
                       return <pre>{children}</pre>;
                     }
                     const className = code.props.className || '';
-                    const language = /language-(\w+)/.exec(className)?.[1];
+                    const language = /language-(\w+)/.exec(className)?.[1] || '';
                     return (
                       <div className="my-4 relative group">
-                        <pre className="rounded-xl bg-slate-900 p-4 pt-8 overflow-x-auto border border-slate-700/50 shadow-lg">
+                        <div className="absolute right-3 top-2 z-10">
                           {language && (
-                            <div className="absolute right-3 top-2">
-                              <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded-md border border-slate-700/50">
-                                {language}
-                              </span>
-                            </div>
+                            <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded-md border border-slate-700/50">
+                              {language}
+                            </span>
                           )}
-                          <code className={`block font-mono text-[0.9rem] leading-relaxed text-slate-200 ${className}`}>
-                            {code.props.children}
-                          </code>
-                        </pre>
+                        </div>
+                        <SyntaxHighlighter
+                          language={language}
+                          style={oneDark}
+                          customStyle={{
+                            margin: 0,
+                            borderRadius: '0.75rem',
+                            padding: '2rem 1rem 1rem',
+                            backgroundColor: 'rgb(15 23 42)',
+                            border: '1px solid rgba(51, 65, 85, 0.5)',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                          }}
+                        >
+                          {code.props.children.trim()}
+                        </SyntaxHighlighter>
                       </div>
                     );
                   },
