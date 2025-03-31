@@ -28,9 +28,9 @@ export default withAuth(
           return true;
         }
 
-        // ログインページは未認証ユーザーのみアクセス可能
+        // ログインページは常にアクセス可能
         if (req.nextUrl.pathname === '/login') {
-          return !token;
+          return true;
         }
 
         // その他のパスは認証が必要

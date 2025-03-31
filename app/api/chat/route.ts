@@ -3,7 +3,7 @@ import { generateStreamingChatResponse, Message } from '@/lib/openai';
 import OpenAI from 'openai';
 
 // ストリームを適切に処理するためのヘルパー関数
-function streamToReadableStream(stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>) {
+function streamToReadableStream(stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk> | AsyncIterable<{ text: string }>) {
   const encoder = new TextEncoder();
   let controller: ReadableStreamDefaultController<Uint8Array>;
   let responseDebugInfo: any = null;
@@ -15,33 +15,38 @@ function streamToReadableStream(stream: AsyncIterable<OpenAI.Chat.Completions.Ch
       async function push() {
         try {
           for await (const chunk of stream) {
-            // デバッグ情報を保存
-            // 最後のチャンクの場合のみデバッグ情報を保存
-            if (chunk.choices[0]?.finish_reason === "stop") {
-              responseDebugInfo = {
-                id: chunk.id,
-                model: chunk.model,
-                usage: chunk.usage || {
-                  completion_tokens: 0,
-                  prompt_tokens: 0,
-                  total_tokens: 0,
-                  completion_tokens_details: {
-                    accepted_prediction_tokens: 0,
-                    audio_tokens: 0,
-                    reasoning_tokens: 0,
-                    rejected_prediction_tokens: 0
+            let text: string;
+            
+            if ('text' in chunk) {
+              // Geminiの応答形式
+              text = chunk.text;
+            } else {
+              // OpenAIの応答形式
+              if (chunk.choices[0]?.finish_reason === "stop") {
+                responseDebugInfo = {
+                  id: chunk.id,
+                  model: chunk.model,
+                  usage: chunk.usage || {
+                    completion_tokens: 0,
+                    prompt_tokens: 0,
+                    total_tokens: 0,
+                    completion_tokens_details: {
+                      accepted_prediction_tokens: 0,
+                      audio_tokens: 0,
+                      reasoning_tokens: 0,
+                      rejected_prediction_tokens: 0
+                    },
+                    prompt_tokens_details: {
+                      audio_tokens: 0,
+                      cached_tokens: 0
+                    }
                   },
-                  prompt_tokens_details: {
-                    audio_tokens: 0,
-                    cached_tokens: 0
-                  }
-                },
-                service_tier: chunk.service_tier,
-                system_fingerprint: chunk.system_fingerprint,
-              };
+                  service_tier: chunk.service_tier,
+                  system_fingerprint: chunk.system_fingerprint,
+                };
+              }
+              text = chunk.choices[0]?.delta?.content || '';
             }
-
-            const text = chunk.choices[0]?.delta?.content || '';
             if (text) {
               // JSON形式でチャンクを送信
               const jsonChunk = {
@@ -83,7 +88,10 @@ export async function POST(request: Request) {
     }
 
     // ストリーミングレスポンスを生成
-    const stream = await generateStreamingChatResponse(messages);
+    const stream = await generateStreamingChatResponse(messages, {
+      model: 'o3-mini', // デフォルトモデルを使用
+      reasoningEffort: 'medium' // デフォルトの推論レベル
+    });
     
     // OpenAIのストリームをReadableStreamに変換
     const readableStream = streamToReadableStream(stream);

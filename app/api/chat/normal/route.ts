@@ -14,7 +14,10 @@ export async function POST(request: Request) {
     }
 
     // 通常の（ノンストリーミング）レスポンスを生成
-    const result = await generateChatResponse(messages);
+    const result = await generateChatResponse(messages, {
+      model: 'o3-mini', // デフォルトモデルを使用
+      reasoningEffort: 'medium' // デフォルトの推論レベル
+    });
     // APIレスポンスを整形
     const response = {
       content: result.content,
