@@ -24,10 +24,10 @@ export default function LoginForm() {
       if (result?.error) {
         setError('ユーザー名またはパスワードが正しくありません');
       } else {
-        // ログイン成功後に新規チャットページにリダイレクト
+        // ログイン成功後にホームページにリダイレクト
         router.refresh();
         setTimeout(() => {
-          router.push('/new');
+          router.push('/');
         }, 100);
       }
     } catch (error) {

@@ -65,10 +65,20 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // IME入力中またはIME確定直後は処理をスキップ
     if (isComposing || justFinishedComposing.current) return;
+
+    // キーイベントの詳細なチェック
     if (e.key === 'Enter' && !e.shiftKey) {
+      // isComposingがfalseでも、キーコードが229（IME処理中）の場合は送信しない
+      if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) {
+        return;
+      }
       e.preventDefault();
-      handleSubmit(e);
+      // 確実にIME処理が完了してから送信
+      setTimeout(() => {
+        handleSubmit(e);
+      }, 0);
     }
   };
 
