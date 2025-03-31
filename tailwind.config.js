@@ -19,7 +19,24 @@ module.exports = {
     },
   },
   plugins: [
-    require('@tailwindcss/typography'),
+    require('@tailwindcss/typography')({
+      theme: {
+        // コードブロックのデフォルトスタイルをリセット
+        css: {
+          pre: {
+            padding: '0',
+            margin: '0',
+            backgroundColor: 'transparent',
+            border: 'none',
+          },
+          'pre code': {
+            padding: '0',
+            border: 'none',
+            backgroundColor: 'transparent',
+          }
+        }
+      }
+    }),
     require('tailwind-scrollbar'),
   ],
 };

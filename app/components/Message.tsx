@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -11,6 +11,8 @@ interface MessageProps {
 }
 
 export default function Message({ role, content }: MessageProps) {
+  const [isCopied, setIsCopied] = useState(false);
+
   return (
     <div className={`py-4 ${
       role === 'user' 
@@ -51,28 +53,48 @@ export default function Message({ role, content }: MessageProps) {
                     }
 
                     return (
-                      <div className="relative my-4">
-                        {language && (
-                          <div className="absolute right-3 top-2 z-10">
-                            <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded-md border border-slate-700/50">
-                              {language}
-                            </span>
-                          </div>
-                        )}
-                        <SyntaxHighlighter
-                          style={oneDark}
-                          language={language}
-                          customStyle={{
-                            margin: 0,
-                            borderRadius: '0.75rem',
-                            padding: '2rem 1rem 1rem',
-                            backgroundColor: 'rgb(15 23 42)',
-                            border: '1px solid rgba(51, 65, 85, 0.5)',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                          }}
-                        >
-                          {String(children).replace(/\n$/, '')}
-                        </SyntaxHighlighter>
+                      <div className="relative my-4 group">
+                       <div className="not-prose rounded-xl overflow-hidden bg-slate-900">
+                         <div className="absolute right-3 top-2 z-10 flex items-center gap-2">
+                           {language && (
+                             <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded-md border border-slate-700/50">
+                               {language}
+                             </span>
+                           )}
+                           <button
+                             onClick={async () => {
+                               const code = String(children).replace(/\n$/, '');
+                               await navigator.clipboard.writeText(code);
+                               setIsCopied(true);
+                               setTimeout(() => setIsCopied(false), 2000);
+                             }}
+                             className={`opacity-0 group-hover:opacity-100 transition-all duration-200 text-xs ${
+                               isCopied ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-300'
+                             } bg-slate-800/50 px-2 py-1 rounded-md border border-slate-700/50`}
+                           >
+                             {isCopied ? 'コピー完了！' : 'コピー'}
+                           </button>
+                         </div>
+                         <SyntaxHighlighter
+                           style={{
+                             ...oneDark,
+                             'pre[class*="language-"]': {
+                               ...oneDark['pre[class*="language-"]'],
+                               background: 'transparent',
+                               margin: 0,
+                               padding: '2rem 1rem 1rem',
+                             },
+                             'code[class*="language-"]': {
+                               ...oneDark['code[class*="language-"]'],
+                               background: 'transparent',
+                             }
+                           }}
+                           language={language}
+                           useInlineStyles={true}
+                         >
+                           {String(children).replace(/\n$/, '')}
+                         </SyntaxHighlighter>
+                       </div>
                       </div>
                     );
                   }
