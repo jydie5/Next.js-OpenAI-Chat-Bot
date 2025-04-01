@@ -68,9 +68,14 @@ export async function generateGeminiResponse(
       model: 'gemini-2.5-pro-exp-03-25'
     });
 
-    // メッセージの準備
-    const formattedMessages = messages.map(msg => msg.content).join("\n\n");
-    const result = await model.generateContent(formattedMessages);
+    // チャットの作成とメッセージの準備
+    const chat = model.startChat({
+      history: convertToGeminiFormat(messages.slice(0, -1))  // 最後のメッセージを除外
+    });
+    
+    // 最後のメッセージを送信
+    const lastMessage = messages[messages.length - 1];
+    const result = await chat.sendMessage(lastMessage.content);
     const response = await result.response;
     const text = response.text();
 
@@ -86,11 +91,15 @@ export async function generateGeminiResponse(
 }
 
 // AsyncGenerator型を返すヘルパー関数
-async function* createStreamingGenerator(model: any, content: string) {
+async function* createStreamingGenerator(chat: any, content: string) {
   try {
-    const result = await model.generateContent(content);
-    const response = await result.response;
-    yield { text: response.text() };
+    const streamingResponse = await chat.sendMessageStream(content);
+    for await (const chunk of streamingResponse.stream) {
+      const text = chunk.text();
+      if (text && text.length > 0) {
+        yield { text };
+      }
+    }
   } catch (error) {
     await handleRateLimit(error);
     throw error;
@@ -111,9 +120,14 @@ export async function generateGeminiStreamingResponse(
       model: 'gemini-2.5-pro-exp-03-25'
     });
     
-    // メッセージの準備
-    const formattedMessages = messages.map(msg => msg.content).join("\n\n");
-    return createStreamingGenerator(model, formattedMessages);
+    // チャットの作成とメッセージの準備
+    const chat = model.startChat({
+      history: convertToGeminiFormat(messages.slice(0, -1))  // 最後のメッセージを除外
+    });
+    
+    // 最後のメッセージを送信（ストリーミング）
+    const lastMessage = messages[messages.length - 1];
+    return createStreamingGenerator(chat, lastMessage.content);
   } catch (error) {
     console.error('Gemini API ストリーミングエラー:', error);
     await handleRateLimit(error);
