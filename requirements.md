@@ -22,6 +22,7 @@ CREATE TABLE sessions (
     user_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 ```
@@ -107,6 +108,10 @@ CREATE TABLE messages (
 1. データベース ✅
    - SQLite
    - Prisma ORM
+
+2. AI モデル ✅
+   - OpenAI API (o3-mini, gpt-4o)
+   - Google Gemini API (gemini-2.5-pro-exp-03-25)
 
 2. 認証 ✅
    - NextAuth.js

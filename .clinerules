@@ -34,7 +34,11 @@
 │   │   ├── chat/
 │   │   │   ├── route.ts
 │   │   │   ├── [id]/
-│   │   │   │   └── route.ts
+│   │   │   │   ├── route.ts
+│   │   │   │   ├── messages/
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── save/
+│   │   │   │       └── route.ts
 │   │   │   └── normal/
 │   │   │       └── route.ts
 │   │   └── sessions/
@@ -57,6 +61,7 @@
 │   │   └── UserManagement.tsx
 │   ├── lib/
 │   │   ├── auth.ts
+│   │   ├── gemini.ts
 │   │   ├── openai.ts
 │   │   └── prisma.ts
 │   ├── login/
@@ -77,7 +82,11 @@
 │   ├── seed.ts
 │   └── migrations/
 │       ├── migration_lock.toml
-│       └── 20250309021457_init/
+│       ├── 20250309021457_init/
+│       │   └── migration.sql
+│       ├── 20250310014500_add_updated_at_to_session/
+│       │   └── migration.sql
+│       └── 20250310014847_test/
 │           └── migration.sql
 ├── public/
 └── types/
@@ -95,7 +104,7 @@
    - app/api/auth/: 認証APIエンドポイント
    - app/api/admin/: 管理者用APIエンドポイント
    - app/api/sessions/: セッション管理API
-   - app/lib/: 共通ライブラリ（OpenAI, 認証, Prisma等）
+   - app/lib/: 共通ライブラリ（OpenAI, Gemini, 認証, Prisma等）
 3. 認証
    - NextAuth.jsによるユーザー認証
    - ミドルウェアによる保護されたルート
